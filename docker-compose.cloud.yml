@@ -1,0 +1,51 @@
+# 寄情 / Dearm —— Supabase Cloud 部署编排。
+#
+# 与自托管版（docker-compose.yml）的关键区别：
+#   - 不 `include` 自托管 supabase 全栈（db/kong/auth/rest/storage/imgproxy）
+#   - 业务库、认证、对象存储全在托管的 *.supabase.co 上
+#   - 本文件只编排两个东西：一次性 migrate + 长驻 app
+#
+# 起停（推荐走封装脚本，含 .env 校验 + 冒烟）：
+#   bash deploy/deploy-cloud.sh
+# 或手动：
+#   docker compose -f docker-compose.cloud.yml up -d --build
+#
+# 反代 / TLS 不在本文件 —— 用宿主 caddy/nginx 终止 TLS 转给容器 3000 端口。
+
+services:
+  # One-shot：把 drizzle/*.sql 应用到云端库（DATABASE_URL 指向 Supabase pooler）。
+  # 云端 auth.users 由托管 GoTrue 预置，drizzle/0011 的 auth.users 外键直接可用，
+  # 无需像自托管那样 depends_on 本地 auth 容器。
+  migrate:
+    build:
+      context: .
+      target: migrate
+    env_file: .env
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+      # NEXT_PUBLIC_* 在 next build 时内联进前端包，必须在 build 阶段注入。
+      # compose 会自动从项目根 .env 读取这些变量做插值。
+      # 云端用 publishable key（sb_publishable_…）；没设 ANON 就回落到 PUBLISHABLE，
+      # 二者在 Dockerfile 里都以 NEXT_PUBLIC_SUPABASE_ANON_KEY 之名内联（config.ts 通用）。
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-}}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEARM_LOG_DIR: /app/logs
+      TZ: ${TZ:-Asia/Shanghai}
+    # 只绑 127.0.0.1 —— 外网碰不到 8091，必须经 nginx(443) + Cloudflare 进来。
+    # 若直接 "8091:3000" 会绑 0.0.0.0，而 Docker 改 iptables 绕过 ufw，源站 IP 就暴露了。
+    ports:
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
+    volumes:
+      - ./logs:/app/logs
+      - ./secrets/payproo_private.pem:/run/secrets/payproo_private.pem:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully

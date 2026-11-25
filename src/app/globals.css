@@ -1,0 +1,2895 @@
+@import "tailwindcss";
+@source not "../../data";
+@source not "../../logs";
+
+/* Chat 默认皮肤专用 layer —— 声明在 tailwind import 之后，层序排在
+   utilities 后面：nj-skin 规则赢过平台 Tailwind utility（跟旧的未分层
+   行为一致），同时任何未分层规则（= creator 的 global_css）永远赢过
+   nj-skin —— 给创作者覆盖上了结构性保险，平台迭代默认皮肤不可能再
+   意外压过美化包。层叠序：creator（未分层）> nj-skin > utilities。 */
+@layer nj-skin;
+
+/* ============================================================================
+ * Dearm (寄情) design tokens — single source of truth lives in /DESIGN.md.
+ * Any change here MUST be mirrored in DESIGN.md (and vice versa).
+ * ========================================================================= */
+
+:root {
+  /* ── color · base ── v2 Wave 5「夜青银」大转向：从暖紫黑改成夜青蓝，
+     MoMA / 江诗丹顿方向。原「暗夜言情」紫罗兰 accent 走向"少女 AI 工具"
+     感，换到冷银 accent + 深夜青底后，气质从"甜"变"贵"—— 克制、内敛、
+     去 AI 味。CLAUDE.md 视觉签名从「一盏灯」进化到「一轮月」（暖橘光晕
+     → 冷月光晕，跨题材角色都能被冷月光笼罩）。 */
+  --bg-base: #0b1220;
+  --bg-elevated: #131b2b;
+  --surface-glass: #1a2438;
+  --surface-solid: #26334a;
+  --border-subtle: rgba(184, 197, 209, 0.12);
+  --border-strong: rgba(184, 197, 209, 0.32);
+
+  /* ── color · accent ── 主色改冷银（原紫罗兰 #bd8ce8 → 冷银 #b8c5d1）
+     —— 不再叫「紫」的名字，靠冷银 90% + 点睛金 10% 的江诗丹顿配比
+     承担全部 CTA / 链接 / focus 的语义。名字保留 --accent-primary 避免
+     大范围重命名，值改成冷银即可（token 化的好处）。 */
+  --accent-primary: #b8c5d1;
+  --accent-primary-hover: #d0dae4;
+  --accent-primary-active: #94a3b8;
+  --accent-secondary: #f0abfc;
+  --accent-gold: #d4af37;
+  --accent-gold-soft: #e8c97a;
+  --accent-amber: #fbbf24;
+
+  /* ── color · 「一轮月」主题辅色 ──
+     moon-cool：冷月光。body 层右上光晕 —— v2 Wave 5 从原 lamp-warm 暖橘 18%
+       进化到 moon-cool 35%，位置从画面外 (88% -5%) 挪到画面内 (88% 8%)，
+       "月光斜射入画面" 才真的肉眼可见（老版 lamp-warm 18% 在暗紫底上
+       几乎失效）。命名保持"月"这个抽象质感，跨时代跨题材通用。
+     ink-jade：墨玉青。保留 —— 冷调下依然协调，用于安静型 hover、
+       次要 tag hairline、hero-eyebrow 短分隔线、章节标签装饰线。
+     rose-veil：烟熏玫瑰粉 —— v2 Wave 9 新增。**心动语义色**。
+       只用在心跳 / 记下 / 关系升级瞬间（比如收藏动效的爆闪圆点、
+       tab bar「我」active 时字色偏暖 5%）。绝不做主色 / 大面积。
+       跟金色（"珍贵"语义）平级 —— 一冷一暖两个 accent 系统。
+       色号刻意压闷（#c9a3ab HSL 351° 34% 71% / 饱和度只有 34%），
+       接近灰粉 —— 是"烟熏玫瑰"不是"芭比粉"，跟"粉色少女风"红线
+       严格切分。
+     命名不绑定器物（如 lantern / jade-pendant / rose），只绑定质感，
+     所以现代都市 CEO / 星际舰长 / 古风剑修 的角色卡都不违和。*/
+  --moon-cool: #c4d1e0;
+  --ink-jade: #7d9b8a;
+  --rose-veil: #c9a3ab;
+
+  /* ── color · text ── v2 Wave 5：文字色从偏紫的浅白系换到冷象牙白 +
+     冷灰蓝系，跟夜青底 + 冷银 accent 统一色温
+     v2 Wave 16：--text-muted #6b7a8f → #7d8aa3 —— 原值偏"脏灰"，
+     往冷紫灰偏一点，跟夜青底（#0b1220 偏蓝）更协调，小字不显得脏。 */
+  --text-primary: #f0f4fa;
+  --text-secondary: #b8c5d1;
+  --text-muted: #7d8aa3;
+  --text-disabled: #6b7280;
+  --text-on-accent: #0b1220;
+
+  /* 平台私有文字色 —— 与上面同值，但用 nj 前缀「私有名」。Tailwind 的
+     text-text-primary / text-text-secondary token 映射到这两个私有名(见下方
+     --color-text-*)，而不是裸的 --text-primary/--text-secondary。
+     原因：外部搬来的创作者 CSS 惯用 --text-primary/--text-secondary 这种通用名，
+     会在 [data-character-css] scope 里重定义成「给自己浅底组件配的深色」。若平台
+     token 直接取 var(--text-primary)，就会被这层重定义污染 —— AI 消息 row / 开场白
+     / 旁白等平台元素的文字跟着变深，铺在寄情深底上看不清(贺韫等 8 张卡开场白、
+     5 张卡旁白的根因)。改指私有名后，创作者重定义 --text-primary 只作用于他们
+     自己 var(--text-primary) 的引用，碰不到平台 token。见
+     docs/exec-plans/active/input-box-skin.md。 */
+  --nj-text-primary: #f0f4fa;
+  --nj-text-secondary: #b8c5d1;
+
+  /* ── color · semantic ── */
+  --semantic-success: #34d399;
+  --semantic-warning: #fbbf24;
+  --semantic-error: #f87171;
+  --semantic-info: #60a5fa;
+
+  /* ── color · currency（双币制金/银，仅用于余额/计费数字与图标着色。
+     不复用强调/徽章所用的 --accent-gold） ── */
+  --currency-gold: #c9a961;
+  --currency-silver: #94a3b8;
+
+  /* ── effects · 发光/阴影（组件里禁止再写死 rgba 发光值） ──
+     v2 Wave 5：从紫色发光换到冷银发光，跟新 accent-primary 同步 */
+  --glow-accent: 0 0 12px rgba(184, 197, 209, 0.45);
+  --shadow-cta: 0 8px 24px -12px rgba(184, 197, 209, 0.6);
+  --shadow-overlay: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+  /* ── typography · fonts (loaded in layout.tsx) ── */
+  --font-display-en: var(--font-fraunces, "Fraunces"), Georgia, serif;
+  --font-display-zh:
+    var(--font-noto-serif-sc, "Noto Serif SC"), "Songti SC", "STSong", serif;
+  --font-body-en: var(--font-inter, "Inter"), system-ui, sans-serif;
+  --font-body-zh: "PingFang SC", "Source Han Sans SC", system-ui, sans-serif;
+  --font-mono:
+    var(--font-jetbrains-mono, "JetBrains Mono"), ui-monospace, monospace;
+  /* v2 Wave 10：极窄衬线数字体 —— 大数字（价格、粉丝数、编号）用它，
+     Aesop / Sézane / The RealReal 的印刷品质感。中文字符不匹配时
+     fallback 到 Fraunces 再 fallback 到系统衬线。 */
+  --font-numeric: "Instrument Serif", var(--font-display-en), Georgia, serif;
+
+  /* typography scale 走 @theme inline 注册(见下方),Tailwind v4 会自动把
+     这些 token 暴露成 :root --text-xs 等普通 CSS 变量,同时让 `text-xs`
+     命名 utility 取项目尺度而非 Tailwind 默认值。
+     之前定义在这里 + arbitrary `text-[var(--text-xs)]` 写法不工作 ——
+     Tailwind 把无类型 hint 的 `var(...)` 当 color 处理,色值非法被丢。 */
+
+  /* ── spacing ── */
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* ── radius ── */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 9999px;
+
+  /* ── motion ── */
+  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-move: cubic-bezier(0.4, 0, 0.2, 1);
+  /* v2 Wave 7 交互仪式化：微弹 easing —— Apple 默认阻尼，用于
+     "有物理感"的按压 / 弹回 / active 微凸。 */
+  --ease-spring: cubic-bezier(0.2, 0, 0, 1.4);
+  --dur-micro: 100ms;
+  --dur-short: 200ms;
+  --dur-medium: 300ms;
+  --dur-long: 500ms;
+  /* v2 Wave 7：iOS 触摸按压标准阻尼时长 */
+  --dur-press: 160ms;
+
+  /* ── layout constants ── */
+  --rail-width: 72px;
+  --topbar-height: 64px;
+  --content-max-width: 1440px;
+  --bottombar-height: 56px;
+
+  /* Page horizontal padding —— DESIGN.md §"容器"：mobile 16 / tablet 24 / desktop 48.
+     窄屏默认 16px，断点升档。所有页面外层容器 statt 写死 px-xl，统一用 var(--page-px)。*/
+  --page-px: var(--space-md);
+
+  /* Page vertical padding —— 配套的纵向呼吸 token。所有页面外层容器统一用
+     var(--page-py)，不要再写死。阶梯：mobile 16 / tablet 20 / desktop 24 ——
+     上一版 24/32/40 顶部留白偏大，跟 topbar 一起把页头压得太靠下。*/
+  --page-py: var(--space-md);
+}
+
+/* Locale-aware glyph forms. Keep the public design tokens stable while
+   swapping only their font-family values at the document language boundary. */
+html[lang="zh-TW"] {
+  --font-display-zh: "Noto Serif TC", "Songti TC", serif;
+  --font-body-zh:
+    "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+}
+
+html[lang="ja-JP"] {
+  --font-display-zh: "Noto Serif JP", "Yu Mincho", serif;
+  --font-body-zh:
+    "Hiragino Kaku Gothic ProN", "Yu Gothic", "Noto Sans JP", system-ui,
+    sans-serif;
+}
+
+html[lang="th-TH"] {
+  --font-display-zh: "Noto Serif Thai", "Th Sarabun New", serif;
+  --font-body-zh: "Noto Sans Thai", Tahoma, system-ui, sans-serif;
+}
+
+html[lang="en"] {
+  --font-display-zh: "Fraunces", Georgia, serif;
+  --font-body-zh: "Inter", system-ui, sans-serif;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --page-px: var(--space-lg);
+    --page-py: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --page-px: var(--space-xl);
+    --page-py: var(--space-lg);
+  }
+}
+
+/* 手机版排版 scale —— DESIGN.md 的 type scale 是按桌面设计的，搬到 390px
+   屏上 hero (text-3xl = 48px) 占半屏宽、卡片标题挤一行。手机端整体降一档，
+   md+ 自动回到桌面原值。注意：text-base 不动，body 排版不受影响。 */
+@media (max-width: 767.98px) {
+  :root {
+    --text-lg: 0.9375rem; /* 16 → 15 */
+    --text-xl: 1.125rem; /* 20 → 18 */
+    --text-2xl: 1.375rem; /* 26 → 22 */
+    --text-3xl: 1.625rem; /* 32 → 26 */
+    --text-4xl: 2rem; /* 40 → 32 */
+  }
+
+  /* v2 Wave 10：mobile 字重补偿 —— iOS / Android 高 DPI 屏 antialiasing
+     让 PingFang / Source Han Sans 笔画显细，body 450 在暗底上还是偏灰。
+     mobile 单独升到 470（Medium 之下），desktop 保持 450 不变。 */
+  body {
+    font-weight: 470;
+  }
+}
+
+/* Bridge tokens into Tailwind 4's utility generator. */
+@theme inline {
+  --color-bg-base: var(--bg-base);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-surface-glass: var(--surface-glass);
+  --color-surface-solid: var(--surface-solid);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-primary-hover: var(--accent-primary-hover);
+  --color-accent-primary-active: var(--accent-primary-active);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-accent-gold: var(--accent-gold);
+  --color-accent-gold-soft: var(--accent-gold-soft);
+  --color-accent-amber: var(--accent-amber);
+  --color-moon-cool: var(--moon-cool);
+  --color-ink-jade: var(--ink-jade);
+  --color-rose-veil: var(--rose-veil);
+
+  /* text-text-primary / text-text-secondary 映射到平台私有名，隔离创作者对
+     裸 --text-primary/--text-secondary 的重定义污染（见上方 --nj-text-* 注释）。 */
+  --color-text-primary: var(--nj-text-primary);
+  --color-text-secondary: var(--nj-text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-on-accent: var(--text-on-accent);
+
+  --color-semantic-success: var(--semantic-success);
+  --color-semantic-warning: var(--semantic-warning);
+  --color-semantic-error: var(--semantic-error);
+  --color-semantic-info: var(--semantic-info);
+
+  --color-currency-gold: var(--currency-gold);
+  --color-currency-silver: var(--currency-silver);
+
+  --font-display-zh: var(--font-display-zh);
+  --font-display-en: var(--font-display-en);
+  --font-body-zh: var(--font-body-zh);
+  --font-body-en: var(--font-body-en);
+  --font-mono: var(--font-mono);
+  --font-numeric: var(--font-numeric);
+
+  /* ── typography · scale (rem, base 16). 小字号少缩，大字号多缩，保留层级。
+     直接定义在 @theme 里,Tailwind v4 自动 emit 到 :root 并生成 text-xs /
+     text-sm / ... 命名 utility。不要用 arbitrary `text-[var(--text-xs)]` ——
+     Tailwind 把无类型 hint 的 `var(...)` 当 color 处理,会静默失败。
+     该写 text-xs / text-sm 等命名 utility。 */
+  --text-xs: 0.625rem; /* 12 → 10 */
+  --text-sm: 0.75rem; /* 14 → 12 */
+  --text-base: 0.875rem; /* 16 → 14 */
+  --text-lg: 1rem; /* 20 → 16 */
+  --text-xl: 1.25rem; /* 28 → 20 */
+  --text-2xl: 1.625rem; /* 36 → 26 */
+  --text-3xl: 2rem; /* 48 → 32 */
+  --text-4xl: 2.5rem; /* 60 → 40 */
+}
+
+/* ============================================================================
+ * Page chrome — background, body type, scanline, vignette
+ * ========================================================================= */
+
+html,
+body {
+  /* 用 background-color 而非 background shorthand —— 下方 body 上叠了
+     「一轮月」冷月光晕（background-image），shorthand 会把 image 一并清掉。*/
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+/* 产品只有暗色（DESIGN.md：不做 light mode）。告诉浏览器按暗色渲染
+   UA 部件 —— 原生 <select> 下拉弹层、滚动条、date picker 等此前是刺眼
+   的系统白底，这一行让它们全部落回暗色。 */
+html {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-body-zh), var(--font-body-en);
+  font-feature-settings: "ss01", "cv01";
+  /* 「一盏灯」字重：PingFang / Source Han Sans 默认 400 在暗底上偏灰，
+     整体升到 450（Regular 和 Medium 之间），让中文正文在深底上更"实"，
+     不干扰阅读又提升手工感。--font-weight-body 走 token 保留后续可再校准。
+     v2 Wave 10 mobile 微调：iOS/Android 屏 antialiasing 让笔画显细，
+     移动端补偿到 470（见下方 media query）。*/
+  font-weight: 450;
+  letter-spacing: 0.02em;
+  line-height: 1.75;
+  min-height: 100dvh;
+}
+
+/* Scanline — page-wide horizontal striping, ~10% perceived opacity */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    rgba(255, 255, 255, 0.012) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+  opacity: 0.8;
+}
+
+/* Vignette — radial corner darkening for cinematic feel */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.5) 100%
+  );
+}
+
+/* 「一轮月」右上角冷月光晕 —— v2 Wave 5 全站唯一视觉签名。
+   DESIGN.md 决策：跨题材角色都能兼容的"月光斜射入画面"抽象暗示，
+   不是具象油灯 / 焦尾琴 —— 只保留"月"这一冷调质感。
+
+   v2 Wave 5 从「一盏灯」暖橘 (peak 18%) 进化到「一轮月」冷月光 (peak 35%)：
+   - opacity 从 18% 提到 35% —— 老版 lamp-warm 18% 在暗紫底上肉眼几乎失效，
+     真正的"视觉签名"需要真正被看到才能算数
+   - 位置从画面外 (88% -5%) 挪到画面内 (88% 8%) —— 月光要真的斜射入画，
+     而不是"我在角落偷偷放了一点渐变"
+
+   实现细节：
+   - 挂在 body 的 background-image 上（多层背景叠加），不新加 DOM 元素，
+     也不占用 pseudo（body::before/::after 已被 scanline/vignette 占）。
+   - background-attachment: fixed 让光晕锚在 viewport 右上，跟随滚动
+     稳定不动 —— 是"画面外的月光"而不是"页面上的印子"。
+   - 径向渐变从右上 (88% 8%) 起，radius 60% × 55% —— 大范围但边缘足够软，
+     只在右上四分之一 viewport 可见，不干扰内容阅读。
+   - 颜色走 color-mix(--moon-cool) 而非写死 rgba，服从 DESIGN.md
+     "禁止写死 rgba 发光值"约束。
+   - 聊天页豁免：body:has(#nj_chat_app) 时把 background-image 撤成
+     纯色 —— 那里是创作者美化的沉浸空间，不给平台外壳干扰。
+     creator 若想恢复月光可在 global_css 里针对 body 恢复。 */
+body {
+  background-image: radial-gradient(
+    ellipse 60% 55% at 88% 8%,
+    color-mix(in oklab, var(--moon-cool) 35%, transparent) 0%,
+    color-mix(in oklab, var(--moon-cool) 15%, transparent) 30%,
+    transparent 65%
+  );
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+body:has(#nj_chat_app) {
+  background-image: none;
+}
+
+/* App topbar —— align ordinary pages with the Explore hero chrome:
+   light text logo + borderless right-side actions. Chat mobile still hides
+   #app-topbar via the rule below, so creator-owned nj_* chat styling is kept
+   isolated. */
+.app-topbar {
+  --app-topbar-brand-start: color-mix(
+    in oklab,
+    var(--text-primary) 92%,
+    var(--accent-gold-soft)
+  );
+  --app-topbar-brand-end: color-mix(
+    in oklab,
+    var(--text-secondary) 92%,
+    var(--text-primary)
+  );
+}
+
+.app-topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  font-size: clamp(20px, 4.92vw, 21px);
+  line-height: 1;
+  text-decoration: none;
+}
+
+.dearm-brand-logo {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-family: "FZQingKeBenYueSongS", "Songti SC", "Noto Serif SC", serif;
+  font-size: inherit;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-decoration: none;
+  text-shadow:
+    0 2px 18px color-mix(in oklab, var(--bg-base) 78%, transparent),
+    0 0 14px color-mix(in oklab, var(--accent-gold-soft) 12%, transparent);
+}
+
+.dearm-brand-logo-text {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    var(
+        --explore-hero-brand-start,
+        var(--app-topbar-brand-start, var(--text-primary))
+      )
+      0%,
+    var(
+        --explore-hero-brand-end,
+        var(--app-topbar-brand-end, var(--text-secondary))
+      )
+      100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+.dearm-brand-logo-orbit {
+  position: absolute;
+  top: -8px;
+  left: 32px;
+  z-index: 0;
+  display: block;
+  width: 30px;
+  height: 34px;
+  overflow: visible;
+  pointer-events: none;
+  opacity: 0.88;
+  mix-blend-mode: screen;
+  filter: drop-shadow(
+      0 0 5px color-mix(in oklab, var(--accent-gold-soft) 38%, transparent)
+    )
+    drop-shadow(0 3px 8px color-mix(in oklab, var(--bg-base) 58%, transparent));
+}
+
+.app-topbar-actions {
+  gap: var(--space-sm);
+}
+
+.app-topbar-icon,
+.app-topbar-avatar {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: color-mix(in oklab, var(--text-primary) 88%, transparent);
+  text-decoration: none;
+  transition:
+    color var(--dur-short) var(--ease-standard),
+    opacity var(--dur-short) var(--ease-standard),
+    background-color var(--dur-short) var(--ease-standard);
+}
+
+.app-topbar-icon:hover,
+.app-topbar-avatar:hover {
+  color: var(--accent-gold-soft);
+}
+
+.app-topbar-admin {
+  color: var(--accent-gold-soft);
+}
+
+.app-topbar-avatar {
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--surface-solid) 18%, transparent);
+}
+
+.app-topbar-avatar:hover {
+  background: color-mix(in oklab, var(--surface-solid) 28%, transparent);
+}
+
+/* Ensure page content sits above the decorative layers.
+   走 @layer base —— Tailwind v4 把 utilities 也放在 layer 里，
+   非 layer 的规则会无视 specificity 永远胜出，导致 `class="fixed"` 在
+   `nav` 元素上失效（被这条 position:relative 顶掉）。 */
+@layer base {
+  main,
+  header,
+  nav,
+  section,
+  article,
+  aside,
+  footer {
+    position: relative;
+    z-index: 3;
+  }
+}
+
+/* Chat 页 immersive：bottom tab bar 自隐时，主容器底部 padding 也得撤掉，
+   否则 sticky 输入框会被推下 viewport（chat 自身用 100dvh - topbar 计算高度）。
+   #nj_chat_app 是 ChatStage 的根 selector，作为标记锚点。 */
+@media (max-width: 767.98px) {
+  .app-topbar {
+    border-bottom-color: transparent;
+    background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--bg-base) 74%, transparent) 0%,
+      color-mix(in oklab, var(--bg-base) 46%, transparent) 100%
+    );
+    padding-inline: 20px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .app-topbar-brand {
+    font-size: clamp(20px, 4.92vw, 21px);
+    line-height: 1;
+    transform: translateY(-1px);
+  }
+
+  .app-topbar-actions {
+    gap: 8px;
+  }
+
+  main:has(#nj_chat_app) {
+    padding-bottom: 0;
+  }
+  /* 聊天页全屏：移动端抹掉全局顶栏（#app-topbar），让聊天自己的 nj_chat_header
+     顶到屏幕最上，和底部 tab bar 自隐对称（见 MobileTabBar）。桌面端不受影响。 */
+  body:has(#nj_chat_app) #app-topbar {
+    display: none;
+  }
+}
+
+/* ============================================================================
+ * Reusable primitives
+ * ========================================================================= */
+
+.hero-title {
+  font-family: var(--font-display-zh);
+  font-weight: 900;
+  font-size: clamp(var(--text-xl), 5vw, var(--text-3xl));
+  line-height: 1.15;
+  /* 「一盏灯」字距：Noto Serif SC 在 3xl+ 字号下默认字距偏松（0.04em 是
+     早期为可读性加的），大标题读起来像"分开的字"而非"整块的题字"。
+     收紧到 -0.005em，让大衬线中文标题有孤本封面的"整块题字"感；
+     letter-spacing 走 clamp 随字号缩放：小字号仍保留 0.02em 的呼吸。 */
+  letter-spacing: clamp(-0.01em, -0.5vw + 0.03em, 0.02em);
+  color: var(--text-primary);
+  /* 旧式数字（oldstyle-nums）—— 数字有升有降，跟正文有节奏，古今通用；
+     禁用等宽让阿拉伯数字融入衬线中文题字。 */
+  font-variant-numeric: oldstyle-nums proportional-nums;
+}
+
+/* 4xl 档 hero —— DESIGN.md「探索页 / 落地页 hero」专用。
+   .hero-title 未分层（会压过 text-4xl utility），所以尺寸升档走
+   这个同为未分层、源顺序更晚的 modifier，别在元素上写 text-4xl。 */
+.hero-title-xl {
+  font-size: clamp(var(--text-2xl), 6vw, var(--text-4xl));
+}
+
+/* ============================================================================
+ * Ordinary page atmosphere
+ * ============================================================================
+ *
+ * Explore owns its photographic hero. The rest of the platform uses this
+ * quieter editorial layer so sessions, create, profile, shop, settings, and
+ * admin feel like rooms in the same night rather than unrelated templates.
+ * Chat and character detail intentionally do not opt in.
+ */
+.page-atmosphere {
+  position: relative;
+  min-height: 100%;
+  overflow: clip;
+  isolation: isolate;
+  background: linear-gradient(
+    180deg,
+    var(--bg-base) 0%,
+    color-mix(in oklab, var(--bg-base) 96%, var(--bg-elevated)) 34%,
+    color-mix(in oklab, var(--bg-base) 98%, var(--ink-jade)) 100%
+  );
+}
+
+.page-atmosphere-wash,
+.page-atmosphere-dust {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.page-atmosphere-wash {
+  z-index: 0;
+  background:
+    radial-gradient(
+      ellipse 62% 42% at 84% 0%,
+      color-mix(in oklab, var(--moon-cool) 10%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 52% 38% at 10% 32%,
+      color-mix(in oklab, var(--ink-jade) 5%, transparent),
+      transparent 76%
+    );
+}
+
+.page-atmosphere-dust {
+  z-index: 0;
+  opacity: 0.36;
+  background-image:
+    radial-gradient(
+      1px 1px at 12% 22%,
+      color-mix(in oklab, var(--text-primary) 28%, transparent) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1px 1px at 28% 68%,
+      color-mix(in oklab, var(--moon-cool) 24%, transparent) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1px 1px at 74% 26%,
+      color-mix(in oklab, var(--accent-gold-soft) 26%, transparent) 50%,
+      transparent 52%
+    ),
+    radial-gradient(
+      1px 1px at 91% 66%,
+      color-mix(in oklab, var(--text-primary) 20%, transparent) 50%,
+      transparent 52%
+    );
+  background-repeat: no-repeat;
+}
+
+.page-atmosphere-content {
+  position: relative;
+  z-index: 1;
+}
+
+.page-hero-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-lg) 0 var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.page-hero-heading::after {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 1px;
+  margin-top: var(--space-sm);
+  background: linear-gradient(
+    90deg,
+    var(--accent-gold-soft),
+    color-mix(in oklab, var(--accent-gold) 45%, transparent)
+  );
+  box-shadow: 0 0 8px
+    color-mix(in oklab, var(--accent-gold-soft) 28%, transparent);
+}
+
+.page-hero-heading-with-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.page-hero-heading-with-actions::after {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.page-hero-actions {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.page-hero-heading-compact {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.page-hero-heading-compact::after {
+  display: none;
+}
+
+.page-hero-eyebrow {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.28em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.page-hero-title {
+  background: linear-gradient(
+    180deg,
+    var(--explore-hero-title-start, #f6edd4) 0%,
+    var(--explore-hero-title-end, #ddd4bd) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  text-shadow: 0 1px 7px
+    color-mix(in oklab, var(--accent-gold-soft) 12%, transparent);
+}
+
+@media (max-width: 767.98px) {
+  .page-hero-heading {
+    padding-top: var(--space-md);
+    padding-bottom: var(--space-sm);
+  }
+
+  .page-hero-heading-with-actions {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
+  .page-hero-heading-with-actions::after {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .page-hero-actions {
+    grid-column: 1;
+    grid-row: 3;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .page-hero-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .page-hero-heading-compact {
+    align-items: center;
+  }
+}
+
+/* 「一盏灯」旧式数字 utility —— 会员等级、统计数字、余额、日期等
+   带数字的 UI 场景加上这个 class，数字会有升有降（1 齐平、3 下沉、8
+   上升），跟正文中文/衬线更有节奏，避免"SaaS 表格感"的等宽数字。
+   小心：不要用在需要对齐的数字表格（比如价格对比表纵列），
+   那里用 tabular-nums 版本 .nums-tabular。 */
+.nums-oldstyle {
+  font-variant-numeric: oldstyle-nums proportional-nums;
+}
+
+.nums-tabular {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* v2 Wave 10 极窄衬线数字 utility —— Instrument Serif 极窄衬线，
+   用于大数字场景（HK$128 价格、粉丝数、章节编号、会员到期日）。
+   Aesop / Sézane / The RealReal 的印刷品质感。至少 24px 起才看清
+   （小屏 12-16px 用 .nums-oldstyle 就够）。跟中文并排时用 letter-spacing
+   微收紧。 */
+.nums-editorial {
+  font-family: var(--font-numeric);
+  font-variant-numeric: oldstyle-nums proportional-nums;
+  letter-spacing: -0.01em;
+}
+
+/* 「一盏灯」hero eyebrow —— 页头大标题下方的英文题记（Fraunces italic）。
+   Skill 方法论「typography carries personality」的落地：
+   大衬线中文题字 + 英文 italic 题记 + 一道 --ink-jade 细线 = 手工书籍的
+   扉页排版语汇，跟 SaaS 页头的"大标题 + 描述副标"拉开距离。
+
+   为什么 italic：Fraunces 的 italic 是唯一能跟大字号 Noto Serif SC
+   衬线并列不打架的字形 —— 直立 Fraunces 会跟中文竞争重量，italic 让位。
+
+   `::before` 是玉青细线：`--ink-jade` 20% opacity，18ch 宽，跟中文标题
+   底对齐。DESIGN.md 说「structure is information」—— 这道线不是装饰，
+   是"上方是标题、下方是题记"的语义分隔。
+   小屏幕上（< sm）线自动缩到 8ch，避免撑破窄屏。*/
+.hero-eyebrow {
+  font-family: var(--font-display-en);
+  font-style: italic;
+  font-weight: 400;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-top: var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.hero-eyebrow::before {
+  content: "";
+  display: block;
+  width: clamp(2rem, 8vw, 4rem);
+  height: 1px;
+  background: color-mix(in oklab, var(--ink-jade) 60%, transparent);
+  flex-shrink: 0;
+}
+
+/* Explore page stage —— mobile-first 首屏从普通筛选页升级成"月门前的书架"。
+   装饰只挂 .explore-page，避免污染设置 / 商店 / 创作工具页。 */
+body:has(.explore-page) {
+  --explore-bg: #081321;
+  --explore-bg-deep: #050c17;
+  --explore-bg-soft: #0b1827;
+  --explore-hero-title: #d9cfb9;
+  --explore-hero-epigraph: #bcae92;
+  --explore-hero-mood: #a2a9b8;
+  --explore-hero-rule: #c6aa69;
+  --explore-hero-brand: #f0eee7;
+  --explore-hero-brand-start: #f5f0e7;
+  --explore-hero-brand-end: #d7dde5;
+  --explore-hero-title-start: #f6edd4;
+  --explore-hero-title-end: #ddd4bd;
+  --explore-hero-epigraph-exact: #aa9d88;
+  --explore-hero-mood-exact: #788497;
+  --explore-hero-rule-start: #e0bd68;
+  --explore-hero-rule-end: #b98a35;
+  --explore-hero-rule-glow: rgba(224, 189, 104, 0.22);
+  background-color: var(--explore-bg);
+  background-image:
+    radial-gradient(
+      ellipse 60% 55% at 88% 8%,
+      color-mix(in oklab, var(--moon-cool) 20%, transparent) 0%,
+      color-mix(in oklab, var(--moon-cool) 8%, transparent) 30%,
+      transparent 65%
+    ), linear-gradient(180deg, var(--explore-bg-deep), var(--explore-bg));
+}
+
+.explore-page {
+  background: linear-gradient(
+    180deg,
+    transparent 0,
+    var(--explore-bg) 390px,
+    var(--explore-bg-soft) 560px,
+    var(--explore-bg) 100%
+  );
+  isolation: isolate;
+}
+
+.explore-hero {
+  background: var(--explore-bg);
+  min-height: clamp(240px, 42vw, 420px);
+  padding: clamp(var(--space-lg), 6vw, var(--space-3xl)) 0 var(--space-xl);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  box-shadow:
+    inset 0 -70px 82px color-mix(in oklab, var(--explore-bg) 32%, transparent),
+    0 34px 72px color-mix(in oklab, var(--explore-bg) 46%, transparent);
+}
+
+.explore-hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 42%;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklab, var(--explore-bg) 6%, transparent) 28%,
+    color-mix(in oklab, var(--explore-bg) 20%, transparent) 70%,
+    color-mix(in oklab, var(--explore-bg) 38%, transparent)
+  );
+  z-index: 0;
+}
+
+.explore-hero > .hero-title,
+.explore-hero > .hero-eyebrow,
+.explore-hero > p,
+.explore-hero-chrome,
+.explore-hero-copy {
+  z-index: 1;
+}
+
+.explore-hero-copy {
+  position: relative;
+}
+
+.explore-hero-copy .hero-title-xl {
+  background: linear-gradient(
+    180deg,
+    var(--explore-hero-title-start) 0%,
+    var(--explore-hero-title-end) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  text-shadow: 0 1px 7px
+    color-mix(in oklab, var(--accent-gold-soft) 12%, transparent);
+}
+
+.explore-hero-copy .hero-eyebrow {
+  color: var(--explore-hero-epigraph-exact);
+}
+
+.explore-hero-copy .hero-eyebrow::before {
+  display: none;
+}
+
+.explore-hero-copy .explore-hero-mood {
+  color: var(--explore-hero-mood-exact);
+}
+
+.explore-hero-chrome {
+  display: none;
+}
+
+.explore-hero-brand {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  font-family: "FZQingKeBenYueSongS", "Songti SC", "Noto Serif SC", serif;
+  font-size: clamp(28px, 8vw, 38px);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-decoration: none;
+  text-shadow: 0 0 18px
+    color-mix(in oklab, var(--explore-bg-deep) 80%, transparent);
+}
+
+.explore-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.explore-hero-icon,
+.explore-hero-avatar,
+.explore-hero-actions > button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in oklab, var(--text-primary) 88%, transparent);
+  text-decoration: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(
+    0 2px 8px color-mix(in oklab, var(--explore-bg-deep) 80%, transparent)
+  );
+}
+
+.explore-hero-icon,
+.explore-hero-actions > button {
+  width: 36px;
+  height: 36px;
+  color: color-mix(in oklab, var(--text-primary) 88%, transparent);
+  transition:
+    color var(--dur-short) var(--ease-standard),
+    opacity var(--dur-short) var(--ease-standard);
+}
+
+.explore-hero-icon:hover,
+.explore-hero-actions > button:hover {
+  color: var(--accent-gold-soft);
+}
+
+.explore-hero-admin {
+  color: var(--accent-gold-soft);
+}
+
+.explore-hero-signin {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.app-topbar-bell.has-unread::after {
+  content: "";
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-gold-soft);
+  box-shadow: 0 0 10px
+    color-mix(in oklab, var(--accent-gold-soft) 64%, transparent);
+  pointer-events: none;
+}
+
+.explore-hero-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--surface-solid) 22%, transparent);
+  overflow: hidden;
+}
+
+.explore-hero-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.explore-hero-scene {
+  z-index: 0;
+  filter: brightness(1.12) saturate(1.14);
+  background:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--explore-bg) 6%, transparent) 0%,
+      transparent 42%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--explore-bg-deep) 6%, transparent) 0%,
+      transparent 34%,
+      color-mix(in oklab, var(--explore-bg) 12%, transparent) 72%,
+      color-mix(in oklab, var(--explore-bg) 26%, transparent) 100%
+    ),
+    radial-gradient(
+      ellipse 22% 34% at 78% 52%,
+      color-mix(in oklab, var(--moon-cool) 24%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      ellipse 62% 36% at 72% 81%,
+      color-mix(in oklab, var(--accent-gold-soft) 24%, transparent),
+      transparent 64%
+    ),
+    radial-gradient(
+      ellipse 34% 34% at 15% 28%,
+      color-mix(in oklab, var(--ink-jade) 14%, transparent),
+      transparent 68%
+    ),
+    image-set(
+      url("/explore/moon-gate-hero-mobile-opt.avif") type("image/avif"),
+      url("/explore/moon-gate-hero-mobile-opt.webp") type("image/webp"),
+      url("/explore/moon-gate-hero-mobile-opt.jpg") type("image/jpeg")
+    );
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+@media (min-width: 768px) {
+  .explore-hero {
+    height: clamp(420px, 61.9vw, 760px);
+    min-height: 0;
+    padding: clamp(var(--space-xl), 5vw, 72px) 0
+      clamp(var(--space-xl), 4vw, 56px);
+  }
+
+  .explore-hero-scene {
+    top: -1px;
+    right: -18px;
+    bottom: -1px;
+    left: -18px;
+    background:
+      linear-gradient(
+        to right,
+        color-mix(in oklab, var(--explore-bg-deep) 20%, transparent) 0%,
+        transparent 48%
+      ),
+      linear-gradient(
+        to bottom,
+        transparent 0%,
+        transparent 44%,
+        color-mix(in oklab, var(--explore-bg) 18%, transparent) 74%,
+        color-mix(in oklab, var(--explore-bg) 34%, transparent) 100%
+      ),
+      radial-gradient(
+        ellipse 22% 34% at 78% 52%,
+        color-mix(in oklab, var(--moon-cool) 20%, transparent),
+        transparent 72%
+      ),
+      image-set(
+        url("/explore/moon-gate-hero-wide-opt.avif") type("image/avif"),
+        url("/explore/moon-gate-hero-wide-opt.webp") type("image/webp"),
+        url("/explore/moon-gate-hero-wide-opt.jpg") type("image/jpeg")
+      );
+    background-position: center 46%;
+    background-size: cover;
+  }
+
+  .explore-hero-copy {
+    position: absolute;
+    top: clamp(112px, 14vw, 168px);
+    left: clamp(32px, 5vw, 80px);
+    right: var(--page-px);
+  }
+
+  .explore-hero-copy .hero-title-xl {
+    font-size: clamp(44px, 5vw, 64px);
+    letter-spacing: 8px;
+  }
+
+  .explore-hero-copy .hero-eyebrow {
+    color: var(--explore-hero-epigraph-exact);
+    font-size: clamp(14px, 1.35vw, 18px);
+  }
+
+  .explore-hero-copy .explore-hero-mood {
+    margin-top: var(--space-lg);
+    color: var(--explore-hero-mood-exact);
+    font-family: var(--font-display-zh);
+    font-size: clamp(13px, 1.2vw, 16px);
+    letter-spacing: 1px;
+  }
+
+  .explore-hero-mood::before {
+    content: "";
+    display: block;
+    width: 34px;
+    height: 1px;
+    margin-bottom: var(--space-md);
+    background: linear-gradient(
+      90deg,
+      var(--explore-hero-rule-start) 0%,
+      var(--explore-hero-rule-end) 100%
+    );
+    box-shadow: 0 0 6px var(--explore-hero-rule-glow);
+  }
+}
+
+.explore-moon-door,
+.explore-moon-path,
+.explore-butterfly {
+  display: none;
+}
+
+.explore-moon-door {
+  position: absolute;
+  right: clamp(var(--space-lg), 9vw, 160px);
+  bottom: clamp(var(--space-xl), 12vw, 96px);
+  width: clamp(86px, 18vw, 190px);
+  aspect-ratio: 0.66;
+  border: 1px solid color-mix(in oklab, var(--moon-cool) 72%, transparent);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+  box-shadow:
+    inset 0 0 36px color-mix(in oklab, var(--moon-cool) 18%, transparent),
+    0 0 42px color-mix(in oklab, var(--moon-cool) 22%, transparent),
+    0 0 70px color-mix(in oklab, var(--accent-gold-soft) 14%, transparent);
+}
+
+.explore-moon-door::after {
+  content: "";
+  position: absolute;
+  inset: 10% 14% 0;
+  border: 1px solid
+    color-mix(in oklab, var(--accent-gold-soft) 44%, transparent);
+  border-bottom: 0;
+  border-radius: inherit;
+  opacity: 0.55;
+}
+
+.explore-moon-path {
+  position: absolute;
+  right: clamp(var(--space-md), 18vw, 260px);
+  bottom: clamp(var(--space-md), 7vw, 64px);
+  width: clamp(190px, 42vw, 460px);
+  height: clamp(70px, 12vw, 140px);
+  border-bottom: 2px solid
+    color-mix(in oklab, var(--accent-gold-soft) 72%, transparent);
+  border-radius: 0 0 58% 42%;
+  filter: drop-shadow(
+    0 0 12px color-mix(in oklab, var(--accent-gold-soft) 58%, transparent)
+  );
+  transform: rotate(-6deg);
+}
+
+.explore-moon-path::before,
+.explore-moon-path::after {
+  content: "";
+  position: absolute;
+  inset: auto 8% 16% 16%;
+  height: 1px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--accent-gold-soft) 78%, transparent),
+    transparent
+  );
+}
+
+.explore-moon-path::after {
+  inset: auto 26% 34% 0;
+  opacity: 0.55;
+}
+
+.explore-butterfly {
+  position: absolute;
+  right: clamp(160px, 31vw, 410px);
+  bottom: clamp(130px, 22vw, 230px);
+  width: var(--space-md);
+  height: var(--space-md);
+  transform: rotate(18deg);
+  filter: drop-shadow(
+    0 0 10px color-mix(in oklab, var(--accent-gold-soft) 75%, transparent)
+  );
+}
+
+.explore-butterfly::before,
+.explore-butterfly::after {
+  content: "";
+  position: absolute;
+  width: 58%;
+  height: 78%;
+  border-radius: 80% 20% 70% 30%;
+  background: color-mix(in oklab, var(--accent-gold-soft) 72%, transparent);
+}
+
+.explore-butterfly::after {
+  right: 0;
+  transform: scaleX(-1) rotate(18deg);
+  opacity: 0.72;
+}
+
+.explore-tabs {
+  overflow: visible;
+  padding-inline: var(--space-md);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--surface-glass) 46%, transparent),
+    color-mix(in oklab, var(--explore-bg) 42%, transparent)
+  );
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.explore-header-search {
+  margin-left: auto;
+  display: none;
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 168px;
+}
+
+.explore-controls,
+.explore-tags {
+  border-radius: var(--radius-lg);
+}
+
+.explore-recommend-pill {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 42px;
+  min-width: 8.75rem;
+  padding-inline: var(--space-lg);
+  border: 1px solid color-mix(in oklab, var(--accent-gold) 52%, transparent);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent-gold) 28%, var(--surface-glass)) 0%,
+    color-mix(in oklab, var(--accent-gold) 12%, var(--surface-glass)) 100%
+  );
+  color: color-mix(in oklab, var(--text-primary) 76%, var(--accent-gold-soft));
+  font-family: var(--font-body-zh);
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--accent-gold-soft) 38%, transparent),
+    0 0 20px color-mix(in oklab, var(--accent-gold) 24%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.explore-recommend-pill:hover,
+.explore-recommend-pill:active,
+.explore-recommend-pill:focus-visible {
+  border-color: color-mix(in oklab, var(--accent-gold-soft) 68%, transparent);
+  background:
+    radial-gradient(
+      ellipse 90% 120% at 28% 0%,
+      color-mix(in oklab, var(--accent-gold-soft) 36%, transparent),
+      transparent 62%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--accent-gold) 31%, var(--surface-glass)) 0%,
+      color-mix(in oklab, var(--accent-gold) 14%, var(--surface-glass)) 100%
+    );
+  color: color-mix(in oklab, var(--text-primary) 78%, var(--accent-gold-soft));
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--accent-gold-soft) 50%, transparent),
+    0 0 24px color-mix(in oklab, var(--accent-gold) 30%, transparent);
+}
+
+.explore-recommend-pill:focus-visible {
+  outline: 1px solid
+    color-mix(in oklab, var(--accent-gold-soft) 72%, transparent);
+  outline-offset: 3px;
+}
+
+.explore-sort-select,
+.explore-search-input,
+.explore-search-button,
+.tag-filter-row .tag-chip {
+  min-height: 42px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--surface-glass) 54%, transparent);
+  box-shadow: inset 0 1px 0
+    color-mix(in oklab, var(--text-primary) 7%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.tag-filter-row .tag-chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.explore-sort-select[data-featured="true"] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent-gold) 22%, var(--surface-glass)) 0%,
+    color-mix(in oklab, var(--accent-gold) 10%, var(--surface-glass)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--accent-gold-soft) 32%, transparent),
+    0 0 18px color-mix(in oklab, var(--accent-gold) 24%, transparent);
+}
+
+.explore-sort-select[data-featured="true"] ~ .explore-sort-glow {
+  opacity: 1;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklab, var(--accent-gold-soft) 34%, transparent);
+}
+
+.tag-filter-row .border-accent-gold\/50 {
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--accent-gold-soft) 22%, transparent),
+    0 0 18px color-mix(in oklab, var(--accent-gold) 22%, transparent);
+}
+
+.character-grid-card-explore {
+  border-color: color-mix(in oklab, var(--moon-cool) 18%, transparent);
+  background: color-mix(in oklab, var(--surface-glass) 34%, var(--explore-bg));
+}
+
+.character-grid-card-explore::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--text-primary) 5%, transparent),
+    inset 0 -42px 60px color-mix(in oklab, var(--bg-base) 42%, transparent);
+  z-index: 6;
+}
+
+.nj-moonrise-grid > .character-grid-card-explore:first-child {
+  border-color: color-mix(in oklab, var(--accent-gold-soft) 74%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--text-primary) 14%, transparent),
+    0 0 0 1px color-mix(in oklab, var(--accent-gold) 28%, transparent),
+    0 0 28px color-mix(in oklab, var(--accent-gold-soft) 28%, transparent);
+}
+
+@media (max-width: 767.98px) {
+  /* biome-ignore lint/style/noDescendingSpecificity: explore topbar override is page-scoped and intentionally follows the shared chat rule. */
+  body:has(.explore-page) #app-topbar {
+    display: none;
+  }
+
+  .explore-page {
+    max-width: none;
+    padding-top: 0;
+    padding-inline: 0;
+    padding-bottom: calc(
+      var(--bottombar-height) +
+      env(safe-area-inset-bottom) +
+      var(--space-2xl)
+    );
+  }
+
+  .explore-page > *:not(.explore-hero) {
+    margin-inline: var(--page-px);
+  }
+
+  .explore-hero {
+    height: clamp(240px, 62.2vw, 266px);
+    min-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0;
+    border-radius: 0;
+    background: image-set(
+      url("/explore/moon-gate-hero-mobile-opt.avif") type("image/avif"),
+      url("/explore/moon-gate-hero-mobile-opt.webp") type("image/webp"),
+      url("/explore/moon-gate-hero-mobile-opt.jpg") type("image/jpeg")
+    );
+    background-position: calc(50% + 6px) center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    box-shadow:
+      inset 0 -64px 78px color-mix(in oklab, var(--explore-bg) 26%, transparent),
+      0 30px 64px color-mix(in oklab, var(--explore-bg) 42%, transparent);
+  }
+
+  .explore-hero-chrome {
+    display: flex;
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + 14px);
+    right: 20px;
+    left: 20px;
+    margin: 0;
+  }
+
+  .explore-hero-brand {
+    font-size: clamp(20px, 4.92vw, 21px);
+    letter-spacing: 1px;
+    transform: translateY(-1px);
+    text-shadow:
+      0 2px 18px color-mix(in oklab, var(--explore-bg-deep) 82%, transparent),
+      0 0 16px color-mix(in oklab, var(--accent-gold-soft) 18%, transparent);
+  }
+
+  .explore-hero-actions {
+    gap: 8px;
+  }
+
+  .explore-hero-icon,
+  .explore-hero-avatar,
+  .explore-hero-actions > button {
+    color: color-mix(in oklab, var(--text-primary) 94%, transparent);
+  }
+
+  .explore-hero-icon,
+  .explore-hero-actions > button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .explore-hero-avatar {
+    width: 36px;
+    height: 36px;
+    box-shadow: none;
+  }
+
+  .explore-hero-scene {
+    top: -2px;
+    right: -24px;
+    bottom: -2px;
+    left: -24px;
+    background:
+      linear-gradient(
+        to right,
+        color-mix(in oklab, var(--explore-bg-deep) 2%, transparent) 0%,
+        transparent 45%,
+        transparent 72%
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in oklab, var(--explore-bg-deep) 4%, transparent) 0%,
+        transparent 32%,
+        color-mix(in oklab, var(--explore-bg) 8%, transparent) 68%,
+        color-mix(in oklab, var(--explore-bg) 24%, transparent) 100%
+      ),
+      radial-gradient(
+        ellipse 42% 24% at 72% 80%,
+        color-mix(in oklab, var(--accent-gold-soft) 24%, transparent),
+        transparent 68%
+      ),
+      radial-gradient(
+        ellipse 34% 42% at 82% 54%,
+        color-mix(in oklab, var(--moon-cool) 16%, transparent),
+        transparent 70%
+      ),
+      image-set(
+        url("/explore/moon-gate-hero-mobile-opt.avif") type("image/avif"),
+        url("/explore/moon-gate-hero-mobile-opt.webp") type("image/webp"),
+        url("/explore/moon-gate-hero-mobile-opt.jpg") type("image/jpeg")
+      );
+    background-position: calc(50% + 6px) center;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+
+  .explore-hero-copy {
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + clamp(104px, 25.3vw, 108px));
+    left: clamp(28px, 7.03vw, 30px);
+    z-index: 1;
+  }
+
+  .explore-hero .hero-title-xl {
+    max-width: none;
+    margin: 0;
+    font-family: "FZQingKeBenYueSongS", "Songti SC", "Noto Serif SC", serif;
+    font-size: clamp(28px, 7.03vw, 30px);
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: 7px;
+    background: linear-gradient(
+      180deg,
+      var(--explore-hero-title-start) 0%,
+      var(--explore-hero-title-end) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    text-shadow: 0 1px 5px
+      color-mix(in oklab, var(--accent-gold-soft) 12%, transparent);
+  }
+
+  .explore-hero .hero-eyebrow {
+    display: block;
+    margin-top: 8px;
+    font-family: "Cormorant Garamond", "Times New Roman", serif;
+    font-size: clamp(12px, 3.05vw, 13px);
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.2;
+    letter-spacing: 0.7px;
+    color: var(--explore-hero-epigraph-exact);
+    opacity: 0.9;
+  }
+
+  .explore-hero .hero-eyebrow::before {
+    display: none;
+  }
+
+  .explore-hero-copy .explore-hero-mood {
+    margin-top: 16px;
+    font-family: "Songti SC", "Noto Serif SC", serif;
+    color: var(--explore-hero-mood-exact);
+    font-size: clamp(11px, 2.82vw, 12px);
+    font-weight: 400;
+    line-height: 1.25;
+    letter-spacing: 1px;
+  }
+
+  .explore-hero-mood::before {
+    content: "";
+    display: block;
+    width: 22px;
+    height: 1px;
+    margin-bottom: 16px;
+    background: linear-gradient(
+      90deg,
+      var(--explore-hero-rule-start) 0%,
+      var(--explore-hero-rule-end) 100%
+    );
+    box-shadow: 0 0 6px var(--explore-hero-rule-glow);
+  }
+
+  .explore-tabs {
+    margin-inline: 0;
+    margin-bottom: 14px;
+    padding: 12px 20px 0;
+    border-top: 1px solid var(--border-subtle);
+    border-bottom-color: color-mix(in oklab, var(--moon-cool) 16%, transparent);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--explore-bg) 72%, transparent),
+      color-mix(in oklab, var(--explore-bg) 94%, transparent)
+    );
+  }
+
+  .explore-tabs a {
+    padding-bottom: 9px;
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  .explore-header-search {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .explore-controls {
+    display: none;
+  }
+
+  .explore-search-form {
+    min-width: 100%;
+  }
+
+  .explore-search-button {
+    padding-inline: var(--space-sm);
+    color: var(--accent-gold-soft);
+  }
+
+  .explore-tags {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .explore-tags::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tag-filter-row {
+    gap: 8px;
+    margin-bottom: 0;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 0;
+    scrollbar-width: none;
+  }
+
+  .tag-filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tag-filter-row .tag-chip {
+    min-height: 34px;
+    padding-inline: 14px;
+    border-color: color-mix(in oklab, var(--moon-cool) 13%, transparent);
+    background: color-mix(in oklab, var(--surface-glass) 36%, transparent);
+    color: color-mix(in oklab, var(--text-secondary) 74%, transparent);
+    font-size: 12px;
+    font-weight: 560;
+    box-shadow:
+      inset 0 1px 0 color-mix(in oklab, var(--text-primary) 6%, transparent),
+      0 0 18px color-mix(in oklab, var(--explore-bg-deep) 42%, transparent);
+  }
+
+  .explore-recommend-pill {
+    min-height: 34px;
+    min-width: 7rem;
+    padding-inline: 16px;
+    border-color: color-mix(in oklab, var(--accent-gold-soft) 68%, transparent);
+    background:
+      radial-gradient(
+        ellipse 90% 120% at 28% 0%,
+        color-mix(in oklab, var(--accent-gold-soft) 36%, transparent),
+        transparent 62%
+      ),
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--accent-gold) 31%, var(--surface-glass)) 0%,
+        color-mix(in oklab, var(--accent-gold) 14%, var(--surface-glass)) 100%
+      );
+    color: color-mix(in oklab, var(--text-primary) 78%, var(--accent-gold-soft));
+    font-size: 13px;
+    box-shadow:
+      inset 0 1px 0
+      color-mix(in oklab, var(--accent-gold-soft) 50%, transparent),
+      0 0 24px color-mix(in oklab, var(--accent-gold) 30%, transparent);
+  }
+
+  .explore-feed-heading {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .explore-feed-heading h2 {
+    position: relative;
+    margin: 0;
+    font-family: var(--font-display-zh);
+    font-size: 16px;
+    font-weight: 720;
+    line-height: 1.25;
+    color: var(--text-primary);
+    text-shadow:
+      0 2px 16px color-mix(in oklab, var(--explore-bg-deep) 86%, transparent),
+      0 0 18px color-mix(in oklab, var(--accent-gold-soft) 12%, transparent);
+  }
+
+  .explore-feed-heading h2::after {
+    content: "✦";
+    margin-left: 8px;
+    color: var(--accent-gold-soft);
+    font-size: 0.58em;
+    text-shadow: 0 0 12px
+      color-mix(in oklab, var(--accent-gold-soft) 62%, transparent);
+  }
+
+  .nj-moonrise-grid {
+    gap: 14px 12px;
+  }
+
+  .character-grid-card-explore {
+    border-radius: 18px;
+  }
+
+  .character-grid-card-explore h3 {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .character-grid-card-explore h3 + p {
+    margin-top: 2px;
+    font-size: 10px;
+  }
+
+  .character-grid-card-meta,
+  .character-grid-card-meta-stat {
+    font-size: 9px;
+  }
+
+  .explore-tabs [aria-current="page"] span {
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      var(--accent-gold-soft),
+      var(--accent-gold)
+    );
+    box-shadow: 0 0 10px
+      color-mix(in oklab, var(--accent-gold-soft) 60%, transparent);
+  }
+
+  .nj-moonrise-grid > .character-grid-card-explore:first-child::before {
+    content: "✦";
+    position: absolute;
+    left: 8px;
+    top: 8px;
+    z-index: 12;
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    border-radius: var(--radius-pill);
+    background: color-mix(in oklab, var(--accent-gold-soft) 82%, transparent);
+    color: var(--text-on-accent);
+    font-size: 11px;
+    box-shadow: 0 0 18px
+      color-mix(in oklab, var(--accent-gold-soft) 68%, transparent);
+  }
+}
+
+.explore-header-search .explore-search-form {
+  flex-wrap: nowrap;
+  gap: var(--space-xs);
+}
+
+.explore-header-search .explore-search-input {
+  min-width: 0;
+  width: 100%;
+  padding-inline: var(--space-sm);
+  background: color-mix(in oklab, var(--surface-glass) 30%, transparent);
+  font-size: var(--text-sm);
+}
+
+.explore-header-search .explore-search-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding-inline: var(--space-sm);
+  color: var(--accent-gold-soft);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.explore-search-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.explore-search-button:hover,
+.explore-search-button:focus-visible {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Cosmic dust —— DESIGN.md 装饰系统 #3：探索页 hero 区 / 空状态背景的
+   半透明 lavender 微星点。挂在装饰用绝对定位层上，密度刻意稀疏。 */
+.cosmic-dust {
+  background-image:
+    radial-gradient(
+      1.5px 1.5px at 8% 28%,
+      rgba(245, 243, 255, 0.5) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1px 1px at 21% 68%,
+      rgba(245, 243, 255, 0.35) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1px 1px at 33% 22%,
+      rgba(245, 243, 255, 0.3) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 46% 76%,
+      rgba(205, 180, 236, 0.35) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1px 1px at 57% 34%,
+      rgba(245, 243, 255, 0.4) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1px 1px at 68% 62%,
+      rgba(245, 243, 255, 0.28) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 79% 18%,
+      rgba(205, 180, 236, 0.4) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1px 1px at 88% 54%,
+      rgba(245, 243, 255, 0.35) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1px 1px at 95% 82%,
+      rgba(245, 243, 255, 0.3) 50%,
+      transparent 51%
+    ),
+    /* 品牌粉紫星点 —— 向 logo 主视觉主色（#e3a0dc 粉紫 / #f0abfc fuchsia）
+       靠拢，让星尘从纯冷 lavender 转成"暖紫梦幻"。仅装饰层，不进聊天区。 */
+    radial-gradient(
+      1.5px 1.5px at 15% 52%,
+      rgba(240, 171, 252, 0.45) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1px 1px at 40% 12%,
+      rgba(227, 160, 220, 0.4) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1.5px 1.5px at 62% 88%,
+      rgba(240, 171, 252, 0.38) 50%,
+      transparent 51%
+    ),
+    radial-gradient(
+      1px 1px at 84% 40%,
+      rgba(227, 160, 220, 0.42) 50%,
+      transparent 51%
+    );
+  background-repeat: no-repeat;
+}
+
+/* 品牌氛围光 —— 向 logo 主视觉靠拢的粉紫梦幻底光。极淡的双径向渐变
+   （粉紫 + 薰衣草），只作平台外壳（hero / 登录 / 空状态）的背景层。
+   纯装饰、绝对定位 pointer-events:none，不碰任何 --accent-* 根 token、
+   不进 nj_* 世界 —— 创作者聊天画布零影响。 */
+.brand-aura {
+  background-image:
+    radial-gradient(
+      ellipse 60% 50% at 25% 15%,
+      rgba(240, 171, 252, 0.14),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 55% 45% at 85% 30%,
+      rgba(167, 139, 250, 0.12),
+      transparent 70%
+    );
+  background-repeat: no-repeat;
+}
+
+.glass-card {
+  position: relative;
+  /* v2 Wave 5 遗漏修复 —— 原写死的 rgba(29, 20, 48, 0.6) 是老紫色底，
+     改为 color-mix 引用 --surface-glass token（夜青蓝），与色系统一 */
+  background: color-mix(in oklab, var(--surface-glass) 60%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  /* v2 Wave 8 材质升级：双线金属边 —— border 已经画了外圈 hairline，
+     再叠 inset 顶部一道冷银 highlight 模拟"金属边缘反光"。
+     参考 Chanel / Dior 官网商品卡的边框处理 —— 让屏幕不像屏幕。 */
+  box-shadow: inset 0 1px 0 rgba(240, 244, 250, 0.06);
+  transition:
+    transform var(--dur-short) var(--ease-spring),
+    box-shadow var(--dur-short) var(--ease-move),
+    border-color var(--dur-short) var(--ease-move);
+}
+
+/* v2 Wave 8 材质升级：银箔 noise 层 —— 极淡 SVG feTurbulence 噪点
+   叠在 glass-card 背景上，让"玻璃卡"变成"有毛感的银箔纸"。
+   参考 Linear / Vercel dark 的 blog cards。opacity ~4%，只在 mobile
+   高 DPI 屏能明显看到（好事）。用 mix-blend-mode: overlay 让 noise
+   只影响亮度不改色相。
+
+   注意：noise 挂在 ::before z-index: 0 + pointer-events: none —— 内部
+   子元素只要不显式 z-index: -1 就在 noise 之上（HTML content 默认 z-order
+   高于 pseudo before）；避免碰内部 absolute 子元素的定位。 */
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  background-size: 120px 120px;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+}
+
+.glass-card:hover {
+  /* v2 Wave 7 交互仪式化：hover 上浮换 --ease-spring 微弹，
+     Apple 阻尼感（-2px 上浮 + 微 scale 1.005 + shadow 加深）
+     v2 Wave 8：hover 时顶部 highlight 加亮，"金属反光被抬起"的感觉 */
+  transform: translateY(-2px) scale(1.005);
+  border-color: var(--border-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(240, 244, 250, 0.12),
+    0 12px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px var(--border-strong);
+}
+
+/* v2 Wave 7：按压反馈 —— iOS 触摸标准 press-in。
+   所有 glass-card 交互态卡（不含 static）在 tap/mousedown 瞬间收进。 */
+.glass-card:active:not(.glass-card-static) {
+  transform: scale(0.985);
+  transition-duration: var(--dur-press);
+}
+
+/* 非交互卡（评论区 / 作者的话等）配 .glass-card 使用：视觉反馈 = 行为
+   承诺，hover 上浮只该出现在可点击的东西上。源顺序在 :hover 之后，
+   同 specificity 后者胜。 */
+.glass-card-static:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.page-atmosphere .glass-card {
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklab, var(--surface-glass) 58%, var(--bg-base)),
+    color-mix(in oklab, var(--bg-elevated) 48%, var(--bg-base))
+  );
+  border-color: color-mix(in oklab, var(--border-subtle) 92%, var(--bg-base));
+}
+
+.page-atmosphere .glass-card:hover {
+  border-color: color-mix(
+    in oklab,
+    var(--border-strong) 82%,
+    var(--accent-gold)
+  );
+}
+
+@media (max-width: 767.98px) {
+  .page-atmosphere .glass-card {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+/* v2 Wave 8 材质升级：btnGold 金属光扫 —— hover / :active 时一道 45°
+   冷白 highlight 从左往右扫过（800ms）。参考 Rolex 官网产品图 hover。
+   只用在 .btn-gold-shine（btnGold / btnGoldLg 内含），全站每屏最多
+   出现一次的 CTA，光扫才是"珍贵瞬间"而不是干扰。 */
+.btn-gold-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-gold-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  transition: transform 0ms;
+}
+
+.btn-gold-shine:hover::after,
+.btn-gold-shine:active::after,
+.btn-gold-shine:focus-visible::after {
+  transform: translateX(120%);
+  transition: transform 800ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Editorial 进入动效 —— 详情页区块 stagger 淡入上移（macOS sheet 的
+   "确定、轻、不表演"）。配 inline animation-delay 错峰。 */
+/* v2 Wave 9 心动瞬间动效 —— 收藏 / 记下 / 关系升级 tap 时，一个
+   烟粉小圆点从元素中心爆出（0 → 100% scale + fadeOut，240ms）。
+   参考 Twitter / Instagram 的 like 动效，但更克制：一次一下不重复，
+   烟粉不亮粉。用法：给按钮加 .nj-heart-burst，tap 时通过 JS 加
+   .nj-heart-burst--fire 触发（或加 :active 触发）。当前先把动效
+   注册进 CSS，具体触发挂 Wave 10 时接入。 */
+@keyframes nj-heart-burst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+}
+
+/* v2 Wave 19「月光滑轨」—— mobile 底部 tab 的共享金色柔光指示器。
+   位于 tab 行顶部，宽度 = 一个 tab 宽（100% / N，N=4 固定 tab 数），
+   translateX = --active-tab × 100%（相对自身宽度 = 相对一个 tab 宽），
+   300ms 弹簧滑到新位置。金色柔光圆片 —— "月光落在你所在的位置"。
+   替代 Wave 7 的"每条 tab 各自的金色短线"（切换时直接消失/出现，
+   没有滑动感）。nav 等分 flex → tab 宽均等，--active-tab 0-3 驱动。 */
+.moon-slider {
+  height: 2px;
+  width: calc(100% / 4);
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    var(--accent-gold-soft),
+    var(--accent-gold)
+  );
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.55);
+  transform: translateX(calc(var(--active-tab, 0) * 100%));
+  transition: transform 300ms var(--ease-spring);
+}
+
+.mobile-tabbar {
+  background:
+    radial-gradient(
+      ellipse 34% 120% at 50% 0%,
+      color-mix(in oklab, var(--moon-cool) 12%, transparent),
+      transparent 70%
+    ), color-mix(in oklab, var(--bg-elevated) 92%, transparent);
+  box-shadow:
+    0 -18px 48px color-mix(in oklab, var(--bg-base) 72%, transparent),
+    inset 0 1px 0 color-mix(in oklab, var(--text-primary) 8%, transparent);
+}
+
+body:has(.explore-page) .mobile-tabbar {
+  background:
+    radial-gradient(
+      ellipse 34% 120% at 50% 0%,
+      color-mix(in oklab, var(--moon-cool) 10%, transparent),
+      transparent 70%
+    ), color-mix(in oklab, var(--explore-bg) 94%, transparent);
+  box-shadow:
+    0 -18px 48px color-mix(in oklab, var(--explore-bg-deep) 72%, transparent),
+    inset 0 1px 0 color-mix(in oklab, var(--text-primary) 8%, transparent);
+}
+
+@media (max-width: 767.98px) {
+  .mobile-tabbar {
+    min-height: calc(var(--bottombar-height) + var(--space-lg));
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-color: color-mix(in oklab, var(--moon-cool) 18%, transparent);
+    padding-top: var(--space-xs);
+  }
+
+  .mobile-tabbar > a {
+    z-index: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moon-slider {
+    transition: none;
+  }
+}
+
+.nj-heart-burst {
+  position: relative;
+  isolation: isolate;
+}
+
+.nj-heart-burst::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--rose-veil) 80%, transparent) 0%,
+    color-mix(in oklab, var(--rose-veil) 20%, transparent) 60%,
+    transparent 100%
+  );
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.nj-heart-burst:active::before {
+  animation: nj-heart-burst 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* v2 Wave 18「封印仪式」—— 收藏 tap 的完整动效链：
+   1. 烟粉圆点爆开（.nj-heart-burst::before，240ms）—— 心动瞬间
+   2. 金色 hairline 圆环从中心扩散收拢（.nj-seal-ring::after，
+      delay 80ms 错开）—— "封印落下的视觉"：收藏 = 把 TA 封印成
+      我的信物
+   3. 按钮 favorited 态变成 rose-veil 封印样式（由 React state 控制）
+   一次一下不重复（:active 触发）。 */
+.nj-seal-ring::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent-gold);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+  transform: translate(-50%, -50%) scale(0.3);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.nj-seal-ring:active::after {
+  animation: nj-seal-ring 420ms cubic-bezier(0.16, 1, 0.3, 1) 80ms both;
+}
+
+@keyframes nj-seal-ring {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 0;
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 0.9;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0;
+  }
+}
+
+/* v2 Wave 12「心动脉动」—— 角色卡 tap 时底部一道暖光波从下向上荡。
+   挂在 .card-heartbeat（CharacterGridCard 内），group-active 触发。
+   光波 = --rose-veil 低饱和 + 金色暖光混合，像心跳的暖流。
+   250ms 一次，从 bottom 沿到卡片中下部就散。
+   默认 animation: none（等 group-active 挂上才跑）—— 用 group-active
+   绑 animation 而不是 opacity，避免 keyframe 的 opacity 与 utility 冲突。 */
+.card-heartbeat {
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, var(--rose-veil) 22%, transparent) 0%,
+    color-mix(in oklab, var(--rose-veil) 8%, var(--accent-gold-soft) 3%) 40%,
+    transparent 100%
+  );
+  animation: none;
+  opacity: 0;
+}
+
+.group:active .card-heartbeat {
+  animation: nj-heart-pulse 250ms ease-out;
+}
+
+@keyframes nj-heart-pulse {
+  0% {
+    transform: translateY(30%);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-heartbeat {
+    display: none;
+  }
+}
+
+/* v2 Wave 17「月光浮现」—— explore 角色卡首屏交错浮现。
+   打开首页像"月光照亮书架，一本本亮起"：每张卡从 6px 上移 + 淡入，
+   60ms 错峰，前 12 张覆盖首屏。animation-fill-mode: both 让动画
+   前 opacity 0（防闪），结束后保持可见。
+   reduced-motion 关闭。 */
+@keyframes nj-moonrise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nj-moonrise-grid > * {
+  animation: nj-moonrise 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.nj-moonrise-grid > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.nj-moonrise-grid > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.nj-moonrise-grid > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.nj-moonrise-grid > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+.nj-moonrise-grid > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.nj-moonrise-grid > *:nth-child(6) {
+  animation-delay: 300ms;
+}
+.nj-moonrise-grid > *:nth-child(7) {
+  animation-delay: 360ms;
+}
+.nj-moonrise-grid > *:nth-child(8) {
+  animation-delay: 420ms;
+}
+.nj-moonrise-grid > *:nth-child(9) {
+  animation-delay: 480ms;
+}
+.nj-moonrise-grid > *:nth-child(10) {
+  animation-delay: 540ms;
+}
+.nj-moonrise-grid > *:nth-child(11) {
+  animation-delay: 600ms;
+}
+.nj-moonrise-grid > *:nth-child(12) {
+  animation-delay: 660ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nj-moonrise-grid > * {
+    animation: none;
+  }
+}
+
+@keyframes nj-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: nj-rise-in 0.45s var(--ease-enter) both;
+}
+
+/* 角色详情页 hero —— 高度与压图渐变。
+   scrim 用多段 color-mix 近似 ease 曲线：三段线性(40/55/95)在图与底色
+   交界处有可见色带，多段缓进让封面底部真正"溶"进 --bg-base（末段全不
+   透明，信息区文字坐在实底上）。 */
+:root {
+  /* 信息区上提量 —— 与 .hero-scrim 末段不透明区联动（scrim 最后 ~9% 全
+     实底，120px 首行落在 >91% 不透明区域内，文字对比度有保证）。改它
+     记得回看 scrim 的 stop。 */
+  --detail-hero-overlap: 120px;
+}
+
+.detail-hero-media {
+  height: clamp(260px, 42vh, 420px);
+}
+
+.hero-scrim {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--bg-base), transparent 72%) 0%,
+    color-mix(in oklab, var(--bg-base), transparent 64%) 38%,
+    color-mix(in oklab, var(--bg-base), transparent 48%) 58%,
+    color-mix(in oklab, var(--bg-base), transparent 28%) 76%,
+    color-mix(in oklab, var(--bg-base), transparent 8%) 91%,
+    var(--bg-base) 100%
+  );
+}
+
+/* v2 Wave 11「烛光初见」—— 角色详情页 hero 的暖烛光底光。
+   radial-gradient 从画面底部中央（立绘胸口附近）发暖光，向上渐隐。
+   --rose-veil（烟粉）与暖金（--accent-gold-soft）低饱和混合：
+   "烛光"质感而非"甜腻粉"。只出现在详情页 hero；进入详情页 = 进入
+   "烛光下的两人世界"，与全局冷银画廊形成氛围切换。
+
+   实现细节：
+   - peak ~14% opacity —— 老式烛光该有的含蓄，不是舞台聚光灯
+   - 位置 ellipse 90% 55% at 50% 105%（底部中央，只照亮下半部）
+   - 动画：极慢的"烛火微颤"（6s）—— 立绘像被真实烛光烘着
+   - reduced-motion 豁免：动效关掉但光还在 */
+.hero-candle-glow {
+  background: radial-gradient(
+    ellipse 90% 55% at 50% 105%,
+    color-mix(in oklab, var(--rose-veil) 16%, var(--accent-gold-soft) 4%) 0%,
+    color-mix(in oklab, var(--rose-veil) 9%, transparent) 35%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  animation: nj-candle-flicker 6s ease-in-out infinite;
+}
+
+@keyframes nj-candle-flicker {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  30% {
+    opacity: 0.92;
+  }
+  55% {
+    opacity: 0.82;
+  }
+  75% {
+    opacity: 0.95;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-candle-glow {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
+/* AI generation breathing dot — replaces the generic spinner everywhere.
+   Three dots staggered at 1/3 of the period produce a left-to-right chase. */
+@keyframes nj-breathing {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.7);
+    filter: brightness(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+    filter: brightness(1.25);
+    box-shadow:
+      0 0 14px var(--dot-glow, var(--accent-primary)),
+      0 0 4px var(--dot-glow, var(--accent-primary));
+  }
+}
+
+.ai-loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  animation: nj-breathing 1.2s var(--ease-move) infinite;
+}
+
+/* 「AI 创作」场景的呼吸点变体 —— DESIGN.md 双 accent 决议的兑现：
+   fuchsia 是"AI 生成"的颜色身份（美化生成 / studio 助手），与聊天
+   流式的紫呼吸点区分开，建立「粉紫 = AI 在为我创作」的联觉。 */
+.ai-loading-dot-creative {
+  --dot-glow: var(--accent-secondary);
+  background: var(--accent-secondary);
+}
+
+.route-loading-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  color: var(--text-muted);
+  animation: nj-route-logo-enter 0.36s var(--ease-enter) both;
+}
+
+.route-loading-logo-overlay {
+  position: fixed;
+  z-index: 24;
+  top: calc(var(--topbar-height) + 26vh);
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      color-mix(in srgb, var(--moon-cool) 24%, transparent),
+      transparent 68%
+    ), color-mix(in srgb, var(--bg-base) 82%, transparent);
+  box-shadow: var(--shadow-overlay);
+  backdrop-filter: blur(18px);
+}
+
+.route-loading-logo-mark {
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  opacity: 0.92;
+  box-shadow: var(--shadow-cta);
+  animation: nj-route-logo-breathe 1.7s var(--ease-move) infinite;
+}
+
+.route-loading-logo-dots {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+@keyframes nj-route-logo-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.route-loading-logo-overlay {
+  animation: nj-route-logo-overlay-enter 0.36s var(--ease-enter) both;
+}
+
+@keyframes nj-route-logo-overlay-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes nj-route-logo-breathe {
+  0%,
+  100% {
+    filter: brightness(0.92);
+    transform: scale(0.98);
+  }
+  50% {
+    filter: brightness(1.14);
+    transform: scale(1.03);
+  }
+}
+
+/* AI 消息流式结束后的「输出完成」标记 —— 0.4s 柔和淡入，
+   挂载即播放一次（元素只在 !isStreaming 时挂载，时机天然对齐）。 */
+@keyframes nj-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.nj_ai_message_end_marker {
+  animation: nj-fade-in 0.4s var(--ease-enter) both;
+}
+
+/* 流式输出尾部 —— 每个新 chunk 到达时重挂载重放, 柔和浮现而非硬弹出
+   (DESIGN.md Motion 签名 #2)。从 0.25 而非 0 起步: 尾巴整段重放动画,
+   从全透明起会闪烁, 低幅度起步读作"墨迹晕开"。非 nj_ 前缀: 平台内部
+   动效类, 不进 creator selector 契约。 */
+@keyframes nj-stream-in {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ai-stream-tail {
+  animation: nj-stream-in 0.18s var(--ease-enter) both;
+}
+
+/* Reduced-motion: 停掉装饰性动画，但**保留呼吸点**——DESIGN.md Motion §6
+   明令「保留 ai-loading-dot 的呼吸，那是核心体感」，只放慢到 1.6s 不停掉。
+   （显式维持 animation-duration，动画名/关键帧沿用基础规则的 nj-breathing。） */
+@media (prefers-reduced-motion: reduce) {
+  .ai-loading-dot {
+    animation-duration: 1.6s;
+  }
+  .glass-card {
+    transition: none;
+  }
+  .rise-in,
+  .ai-stream-tail,
+  #nj_background_image {
+    animation: none;
+  }
+}
+
+/* No light mode — DESIGN.md explicitly excludes it.
+ * Disregard any prefers-color-scheme: light hints from the browser. */
+
+/* 聊天立绘「呼吸」—— 极慢的 scale 起伏，让舞台像活着而不是一张贴图
+   （"会动的小说书架"）。要点：
+   - 用独立 scale 属性：#nj_background_image 靠 transform utility 居中
+     （-translate-x-1/2），动画若写 transform 会顶掉居中让立绘跳位
+   - 只放大不缩小（基线 1），不会露出未绘制边缘；mask 随元素等比缩放
+   - 放进 nj-skin 层：creator 未分层的 animation/scale 覆盖稳赢 */
+@layer nj-skin {
+  @keyframes nj-stage-breathe {
+    0%,
+    100% {
+      scale: 1;
+    }
+    50% {
+      scale: 1.035;
+    }
+  }
+
+  #nj_background_image {
+    transform-origin: center 30%;
+    animation: nj-stage-breathe 26s var(--ease-move) infinite;
+  }
+}
+
+/* ============================================================================
+ * Chat 默认皮肤（Layer B）—— 全部包在 @layer nj-skin 里。
+ * creator 的 global_css 是未分层规则，无需 !important 即稳赢本节任何规则
+ * （层叠序见文件头 @layer 声明处注释）。
+ * 视觉契约：docs/contracts/chat-render-spec.md §3
+ * 所有 token 来自上面的 :root，**不写死 hex**。
+ * ========================================================================= */
+
+@layer nj-skin {
+  .nj_ai_message_bubble {
+    /* 气泡在 .nj_ai_message_row（flex flex-col）里是 flex item。flexbox 会把
+   * inline-block 块化、并因默认 align-items: stretch 把它拉满整行。align-self:
+   * flex-start + width: fit-content 让它退回「按内容长度收缩」，短台词不再占整行。
+   * max-width 仍由下方 @media 兜底，长台词照常折行不溢出。 */
+    display: inline-block;
+    align-self: flex-start;
+    width: fit-content;
+    max-width: 100%;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-body-zh);
+    line-height: 1.5;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .nj_user_message_bubble {
+    display: inline-block;
+    max-width: 100%;
+    /* min-width: fit-content 是必须的，不能删。气泡挂在 justify-end 的 flex row
+   * 里、外面又套了两层 `w-fit`（width: fit-content）。Chromium 在这种「嵌套
+   * shrink-to-fit + 可断行内容」的场景下，会把 width:fit-content 误解析成
+   * min-content —— 对中文来说 min-content = 单个汉字宽。于是「嘿嘿」两个字会被
+   * 压成一字一行竖排。min-width: fit-content 给气泡一个「至少 fit-content 宽」的
+   * 地板，挡住这次坍缩；长文本时 fit-content 退化为可用宽度，照常折行不溢出。 */
+    min-width: fit-content;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    background: var(--accent-primary);
+    color: var(--text-on-accent);
+    font-family: var(--font-body-zh);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .nj_message_narration {
+    display: block;
+    max-width: 100%;
+    padding-block: var(--space-2xs);
+    font-family: var(--font-body-zh);
+    font-weight: 400;
+    line-height: 1.7;
+    /* 旁白默认近白 —— 寄情底色深(#0e0a1a)，旧的 --text-muted(#b0a2bd 偏紫灰)在
+       深底上发闷、不如白清爽(沿用外部美化的白字观感)。只是默认值：创作者显式写了
+       .nj_message_narration color 的卡优先级更高、不受影响。 */
+    color: #f5f0fa;
+  }
+
+  .nj_message_system {
+    display: block;
+    margin: var(--space-md) auto;
+    padding: var(--space-sm) var(--space-md);
+    width: min(440px, 100%);
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklch, var(--bg-base), transparent 40%);
+    backdrop-filter: blur(8px);
+    text-align: center;
+    font-family: var(--font-body-zh);
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    border: 1px solid color-mix(in oklch, var(--accent-gold), transparent 80%);
+  }
+
+  .nj_message_think {
+    display: block;
+    width: 100%;
+    margin-block: 0;
+    /* 横向留白:无框时表现为缩进(同外部平台的内心独白排版),有框时(creator/
+   * 外部导入给 think 块加 background/border 做成气泡)给加粗文字留出呼吸位,
+   * 不再贴边。跟 .nj_ai_message_bubble 取同一组 token 保持气泡留白一致。 */
+    padding: var(--space-sm) var(--space-md);
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-body-zh);
+    line-height: 1.7;
+    cursor: pointer;
+    transition: opacity var(--dur-short) var(--ease-move);
+  }
+  .nj_message_think[data-collapsed="true"] {
+    opacity: 0.6;
+  }
+
+  .nj_emphasis_text {
+    display: inline;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  /* 状态栏内的 markdown bold（**字段名：** **好感度：** 等）恢复渐变彩字。
+ *
+ * f68ac4b 把 .nj_emphasis_text 全平台剥成普通白色是为了「对话和叙事走
+ * 读小说气质」—— 那部分目的不变。但状态栏 <details> 里的字段标签也是
+ * 通过 markdown bold 渲染的，跟着被剥色后整片状态栏视觉密度塌掉。
+ *
+ * scope 到 <details> 内，让状态栏标签重新染色 —— 普通对话 / 叙事段的
+ * **xx** 不受影响仍是素面白字。selector 优先级 (0,2,1) > 单纯 .nj_emphasis_text
+ * (0,1,0)，scope 内的规则覆盖上面那条。
+ */
+  .nj_ai_message_row details .nj_emphasis_text {
+    background-image: linear-gradient(
+      90deg,
+      var(--accent-secondary) 0%,
+      var(--accent-gold-soft) 50%,
+      var(--accent-primary) 100%
+    );
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  .nj_code_block {
+    display: block;
+    margin: var(--space-md) 0;
+    padding: var(--space-md);
+    width: min(400px, 100%);
+    border-radius: var(--radius-lg);
+    background: var(--bg-base);
+    border: 1px solid var(--accent-primary);
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    overflow-x: auto;
+  }
+
+  /* 平台不加框 / 不加底 / 不加圆角 —— 跟 src/lib/regex/iframe-bridge.ts 的
+ * PLATFORM_RESET_STYLE_TAG 注释意图对齐：作者在 srcdoc 里自己出框（手机壳、
+ * 卡牌、模拟器外形等），系统侧不该再套一层"卡片样式"，否则会出现李逾寻手机
+ * 那种"大框包小框"。creator 想要平台风格的框，自己在 global_css 里加。 */
+  .nj_artifact_iframe {
+    display: block;
+    width: 100%;
+    margin-block: var(--space-md);
+  }
+
+  .nj_scenario_section {
+    display: block;
+  }
+
+  /* 状态栏式 <details> 折叠卡 fallback。
+ * 角色卡常用 <details><summary>记忆区</summary>...</details> 当状态面板，
+ * 没默认皮肤就掉回浏览器原生 ▶ 行内 marker（裸文字、无边框）。这层给所有
+ * AI 消息里的 details 一份方框观感，创作者 CSS（data-character-css 作用域）
+ * 可用 !important 覆盖。whitelist.ts 已显式放行 details/details summary
+ * 前缀给创作者使用。
+ *
+ * 作用域选 .nj_ai_message_row 而不是 .nj_ai_message_bubble：后者只在 LLM
+ * 输出包了 <message> 标签触发 AIBubble 组件时才出现，而绝大多数角色卡（含
+ * 谢寻这类外部导入卡）直接吐裸 markdown + <details>，根本不走 AIBubble，
+ * 所以挂在 bubble 上的规则匹配不到节点。row 是 MessageBubble 给所有 AI
+ * 消息无条件挂的外层（src/components/chat/MessageBubble.tsx:189），稳定。
+ *
+ * :not([class]):not([style]) 让作者一旦给 details 自己写 class 或 inline style，
+ * 平台默认皮肤完全让位 —— 避免李逾寻 .cy-box-v2 / .cyi-box 这种已自带完整
+ * 外形的 details 外面又被平台套一层框（双框 bug）。只有彻底"裸"的 details 才
+ * 走兜底皮肤。summary 同理。 */
+  .nj_ai_message_row details:not([class]):not([style]) {
+    display: block;
+    margin-block: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
+    background: color-mix(in oklch, var(--surface-glass), transparent 30%);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .nj_ai_message_row details:not([class]):not([style]) > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-body-zh);
+    color: var(--text-primary);
+    user-select: none;
+  }
+
+  .nj_ai_message_row
+    details:not([class]):not([style])
+    > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .nj_ai_message_row details:not([class]):not([style]) > summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--text-muted);
+    transition: transform var(--dur-short) var(--ease-move);
+  }
+
+  .nj_ai_message_row details:not([class]):not([style])[open] > summary::before {
+    transform: rotate(90deg);
+  }
+
+  .nj_ai_message_row details:not([class]):not([style])[open] > summary {
+    margin-bottom: var(--space-sm);
+  }
+}
+
+/* iOS Safari auto-zooms (and then lets you pan) ANY input whose computed
+   font-size < 16px on focus. The design-system --text-base is 14px, so every
+   search/text field triggers it — not just the chat box. Bump all form controls
+   to ≥16px on touch-width so focusing a field never rescales the viewport.
+   兜底层：即便某引擎忽略 layout.tsx 的 maximum-scale=1，这条也能挡住放大。
+   （未加 @layer，优先级高于 Tailwind 的 text-sm，无需 !important。） */
+@media (max-width: 767.98px) {
+  input,
+  textarea,
+  select,
+  #nj_chat_input_textarea {
+    font-size: 16px;
+  }
+}
+
+@layer nj-skin {
+  @media (min-width: 768px) {
+    .nj_ai_message_bubble,
+    .nj_user_message_bubble,
+    .nj_message_narration {
+      max-width: 80%;
+    }
+  }
+
+  /* 手机端此前无任何 max-width, 用户气泡贴满整列像一块实心板。AI 叙事文
+   保持全宽(读小说流), 只给用户气泡留出"对话感"的呼吸位。Layer B 默认
+   皮肤演进, creator 显式覆盖不受影响。 */
+  @media (max-width: 767.98px) {
+    .nj_user_message_bubble {
+      max-width: 88%;
+    }
+  }
+}
+
+/* ============================================================================
+ * 跨文档 View Transitions —— 整页导航（explore 网格的硬导航进详情页、
+ * 分享落地页进站等）做 260ms 柔和交叠，代替白屏硬切。
+ * 只作用于 cross-document 导航：App Router 的 <Link> 软导航不受影响。
+ * 渐进增强：不支持的浏览器行为不变。
+ * ========================================================================= */
+@view-transition {
+  /* biome-ignore lint/correctness/noUnknownProperty: @view-transition 描述符（CSS View Transitions L2），biome 规则库尚未收录 */
+  navigation: auto;
+}
+
+/* biome-ignore lint/correctness/noUnknownTypeSelector: view-transition 伪元素参数，biome 尚未收录 */
+::view-transition-old(root) {
+  animation-duration: 260ms;
+  animation-timing-function: var(--ease-exit);
+}
+
+/* biome-ignore lint/correctness/noUnknownTypeSelector: view-transition 伪元素参数，biome 尚未收录 */
+::view-transition-new(root) {
+  animation-duration: 260ms;
+  animation-timing-function: var(--ease-enter);
+}
+
+/* v2 Wave 20「翻页仪式」—— 共享元素 morph 的 view-transition-name。
+   卡片 / 详情 hero 都设 --nj-card-id（角色 id），这里把同名 CSS 变量
+   转成 view-transition-name —— 新旧文档配对，浏览器自动 morph 这张
+   立绘（explore 卡片放大成详情 hero）。 */
+[style*="--nj-card-id"] {
+  view-transition-name: var(--nj-card-id);
+}
+
+/* v2 Wave 20「翻页仪式 · 共享元素 morph」——
+   探索页角色卡（hardNav 原生 <a> → 整页导航）点进详情时：
+   - 被点击的角色卡（.nj-card-<id>）放大成详情页 hero
+     （.nj-detail-hero-<id>），浏览器自动 morph 这张图
+   - 用 --nj-card-id CSS 变量在 card 和 hero 上写入同名
+     view-transition-name，让新旧文档的同一元素配对
+   需要 JS 给卡片和 hero 注入 --nj-card-id（见组件）。
+   root 淡入淡出保留（260ms 交叠），morph 叠加其上。 */
+@keyframes nj-cover-wipe {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+::view-transition-old(nj-cover) {
+  animation: nj-cover-wipe 260ms var(--ease-exit) both;
+}
+
+::view-transition-new(nj-cover) {
+  animation-duration: 320ms;
+  animation-timing-function: var(--ease-enter);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    /* biome-ignore lint/correctness/noUnknownProperty: 同上，View Transitions L2 描述符 */
+    navigation: none;
+  }
+}
+/* Composer interaction is platform-owned. Imported Mufy skins can draw a
+ * transparent frame with pseudo-elements above the textarea; preserve the
+ * visuals but never let those decorative layers receive pointer events. */
+#nj_chat_input_box::before,
+#nj_chat_input_box::after,
+#nj_chat_input_container::before,
+#nj_chat_input_container::after {
+  pointer-events: none !important;
+}

@@ -1,0 +1,10 @@
+import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const path='src/lib/util/clipboard.ts',original=await readFile(path,'utf8');
+const secureBranch='if (window.navigator.clipboard?.writeText && window.isSecureContext) {';
+if(original.split(secureBranch).length!==2)throw Error('COPY_BRANCH_CHANGED');
+const bundle=await Bun.build({entrypoints:['scripts/preview-mufy-legacy-copy-client.ts'],target:'browser',plugins:[{name:'exercise-http-fallback-only',setup(build){build.onLoad({filter:/[\\/]src[\\/]lib[\\/]util[\\/]clipboard\.ts$/},()=>({contents:original.replace(secureBranch,'if (false) {'),loader:'ts'}));}}]});
+if(!bundle.success)throw Error(String(bundle.logs));
+const js=await bundle.outputs[0].text(),html='<!doctype html><html lang="zh"><meta charset="utf-8"><title>HTTP复制分支本地验收 · 未发布</title><main><h1>HTTP复制分支本地验收</h1><p>仅在此测试页直接执行现有兼容分支，不改浏览器权限，不发送消息。</p><div id="copy-widget"></div><output id="copy-result">尚未操作</output><p><label>正常粘贴核对<textarea id="copy-paste"></textarea></label></p></main><script src="/app.js"></script></html>';
+const server=Bun.serve({hostname:'127.0.0.1',port:0,fetch(req){return new Response(new URL(req.url).pathname==='/app.js'?js:html,{headers:{'Content-Type':new URL(req.url).pathname==='/app.js'?'text/javascript':'text/html;charset=utf-8','Content-Security-Policy':"connect-src 'none';media-src 'none'"}});}});
+console.log(JSON.stringify({url:`http://127.0.0.1:${server.port}`,candidateSha256:createHash('sha256').update(original).digest('hex'),branch:'existing legacy fallback, secure API branch disabled in fixture bundle only',remoteWrites:0,buildStarted:false}));

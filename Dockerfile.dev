@@ -1,0 +1,16 @@
+# Dev image — installs deps, then expects src / public / drizzle to be
+# bind-mounted from the host (see docker-compose.dev.yml). Hot reload is
+# Next's webpack watcher inside the container.
+
+FROM oven/bun:1.2-alpine AS dev
+WORKDIR /app
+
+# Install deps once at build time. When package.json / bun.lock change on
+# the host the volume mount overlays them; you'll need to rebuild this
+# image (`docker compose build app`) to pick up new deps.
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
+
+ENV NEXT_TELEMETRY_DISABLED=1
+EXPOSE 3000
+CMD ["bun", "run", "dev", "--", "--hostname", "0.0.0.0"]

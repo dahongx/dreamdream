@@ -1,0 +1,17 @@
+import {readFile,writeFile,mkdir,appendFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {nativeImageSidebarEnvelope,extractNativeImageSidebars,type NativeImageSidebar} from '../src/lib/opening/native-image-sidebar';
+const start=performance.now(),base='logs/mufy-profiles/full-20261013/next-batch-30-20261028',out=base+'/rule-repairs/45/native-quick-symbols';
+const inventory=JSON.parse(await readFile(base+'/final-acceptance/45/source-public-component-inventory.json','utf8'));
+const source=inventory.roots[1].frames[0].html as string;
+if(!source.includes("var COMPONENT_ID = '_MYAPP_QUICK_SYMBOLS_V7'")||!source.includes("forceInput('（）', 1)")||!source.includes("forceInput('$', 1)")||!source.includes("forceInput('$线上聊天：', 6)"))throw Error('KNOWN_PUBLIC_SYMBOL_PROGRAM_REQUIRED');
+const quickCss=/shadow\.innerHTML\s*=\s*`\s*<style>([\s\S]*?)<\/style>/.exec(source)?.[1];
+if(!quickCss||quickCss.includes('${'))throw Error('STATIC_PUBLIC_STYLE_REQUIRED');
+const spec:NativeImageSidebar={version:1,variant:'page-controls',shellHtml:'<div class="native-page-controls"></div>',css:'',documents:[],pageControls:{id:'qishu-public-quick-v7',quickCss,scrollButtons:false}};
+const envelope=nativeImageSidebarEnvelope(spec);
+if(extractNativeImageSidebars(envelope).sidebars.length!==1)throw Error('SCHEMA_FAILED');
+await mkdir(out,{recursive:true});await writeFile(out+'/sidebar-spec.json',JSON.stringify(spec,null,2));await writeFile(out+'/native-widget-envelope.txt',envelope);
+const proof={rank:45,observedAt:new Date().toISOString(),elapsedMs:performance.now()-start,sourceRootIndex:1,sourceIndex:0,sourceSha256:createHash('sha256').update(source).digest('hex'),authorProgramExecuted:false,ownerUiSaved:false,freshOwnerBaselineRequired:true,localUiVerified:false,fullFidelityAccepted:false};
+await writeFile(out+'/proof.json',JSON.stringify(proof,null,2));
+await appendFile(base+'/timing-runs.jsonl',JSON.stringify({stepId:'qishu-quick-symbols-stage-20261104',observedAt:proof.observedAt,elapsedMs:proof.elapsedMs,kind:'local-processing',browserElapsedMs:0})+'\n');
+console.log(JSON.stringify(proof));

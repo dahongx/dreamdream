@@ -1,0 +1,50 @@
+import {expect,test} from 'bun:test';
+import {JSDOM} from 'jsdom';
+import {MUFY_PLAYER_NAME_BINDING,mufyPlayerNameBinding} from '../import/mufy-player-name';
+import {openingComponentPresentation} from '../import/mufy-component-presentation';
+
+test('legacy player identity updates visible text and dynamic panels without replacing author nodes',async()=>{
+ const dom=new JSDOM(`<details open><summary>mufyer，你好</summary><p id="body" data-name="mufyer">{{ user }} × mufyer</p></details><style>.mufyer{color:red}</style><script>var mufyer='keep';</script><textarea>mufyer</textarea><code>mufyer</code><a rel="author">mufyer</a>`);
+ const {window}=dom,doc=window.document;
+ const host={context:{userName:'甲<人物>'}};
+ Object.assign(window,{host});
+ const program=MUFY_PLAYER_NAME_BINDING.replace(/^<script[^>]*>/,'').replace(/<\/script>$/,'');
+ new Function('window','document','NodeFilter','MutationObserver','queueMicrotask',program)(window,doc,window.NodeFilter,window.MutationObserver,queueMicrotask);
+ doc.dispatchEvent(new window.Event('DOMContentLoaded'));
+ await new Promise(resolve=>setTimeout(resolve,0));
+ const paragraph=doc.getElementById('body')!,details=doc.querySelector('details')!;
+ expect(doc.querySelector('summary')!.textContent).toBe('甲<人物>，你好');
+ expect(paragraph.textContent).toBe('甲<人物> × 甲<人物>');
+ expect(paragraph.getAttribute('data-name')).toBe('mufyer');
+ expect(doc.querySelector('style')!.textContent).toContain('.mufyer');
+ expect(doc.querySelector('script')!.textContent).toContain("var mufyer='keep'");
+ expect(doc.querySelector('textarea')!.value).toBe('mufyer');
+ expect(doc.querySelector('code')!.textContent).toBe('mufyer');
+ expect(doc.querySelector('a')!.textContent).toBe('mufyer');
+ expect(doc.querySelector('人物')).toBeNull();
+ host.context.userName='乙';window.dispatchEvent(new window.Event('host-ready'));
+ await new Promise(resolve=>setTimeout(resolve,0));
+ expect(doc.getElementById('body')).toBe(paragraph);
+ expect(details.open).toBe(true);
+ expect(paragraph.textContent).toBe('乙 × 乙');
+ const panel=doc.createElement('p');panel.textContent='mufyer的新面板';doc.body.append(panel);
+ await new Promise(resolve=>setTimeout(resolve,0));
+ expect(panel.textContent).toBe('乙的新面板');
+ paragraph.textContent='作者更新：mufyer';
+ await new Promise(resolve=>setTimeout(resolve,0));
+ expect(paragraph.textContent).toBe('作者更新：乙');
+ host.context.userName='丙';window.dispatchEvent(new window.Event('host-ready'));
+ await new Promise(resolve=>setTimeout(resolve,0));
+ expect(paragraph.textContent).toBe('作者更新：丙');
+ expect(panel.textContent).toBe('丙的新面板');
+ dom.window.close();
+});
+
+test('binding is limited to opted-in independent source documents',()=>{
+ const content='<p>mufyer / {{ user }}</p>';
+ expect(openingComponentPresentation(content,'',true)).toContain('data-nj-mufy-player-binding');
+ expect(openingComponentPresentation(content,'',false)).not.toContain('data-nj-mufy-player-binding');
+ expect(openingComponentPresentation('<style data-mufy-source-skin></style>'+content,'',true)).not.toContain('data-nj-mufy-player-binding');
+ expect(mufyPlayerNameBinding('<p>no legacy identity</p>')).toBe('');
+ expect(mufyPlayerNameBinding(MUFY_PLAYER_NAME_BINDING+content)).toBe('');
+});

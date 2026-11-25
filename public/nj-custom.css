@@ -1,0 +1,168 @@
+/* ============================================================
+ * nj-custom.css —— Dearm 美化包参考样式 (v1)
+ *
+ * 这份文件不是被 host 直接加载的「主题」，而是给 creator 写
+ * pack.globalCss 时的参考 stub：
+ *
+ *   1. 列出全部可挂样式的稳定 `nj_*` selector（含状态注释）
+ *   2. 给每个 selector 备注 host 默认皮肤（Layer B）的关键属性
+ *   3. 提示常见坑（渐变填充、scope 隔离、!important 等）
+ *
+ * 真实使用流程：
+ *   - 在 /studio/packs/<id> 的 CSS tab 中编辑 pack.globalCss 字段
+ *   - 直接写覆盖样式即可（host 已经在 <head> 注入了这份的等价默认）
+ *   - host 会自动给你的 selector 套上
+ *     [data-character-css="<characterId>"] 角色 scope，跨角色不互染
+ *
+ * 完整字典见 docs/contracts/nj-selectors.md。
+ * 渲染契约见 docs/contracts/chat-render-spec.md。
+ * 状态标记：✅ 已挂 · 🚧 计划挂（v1 未必生效） · 📦 模板私有 / placeholder
+ * ============================================================ */
+
+/* ──────────────────────────────────────────────────────────
+ * §0 · 角色 scope（host 自动注入，creator 不用写）
+ *
+ * 你的样式最终会被 sanitize + scope 成下面这种形态：
+ *   [data-character-css="abc"] .nj_ai_message_bubble { ... }
+ * 所以不必担心污染其他角色，但也不能写 :root / body / * 之类
+ * 通用 selector —— sanitize 阶段会被丢弃。
+ * ────────────────────────────────────────────────────────── */
+
+/* ──────────────────────────────────────────────────────────
+ * §1 · 舞台容器（chat 主页面骨架）
+ * ────────────────────────────────────────────────────────── */
+
+/* ✅ #nj_chat_app                 最外层容器（含立绘 + overlay + 内容） */
+/* ✅ #nj_background_image         立绘层 div（即使无立绘也保留空 div）
+ *    host 默认：mask 渐变带 100px 边缘淡出
+ *    覆盖示例：background-image: url('...') !important;
+ *             filter: brightness(0.7); */
+/* ✅ #nj_background_overlay       立绘上方蒙层（host 默认 rgba(14,10,26,.6)） */
+/* ✅ #nj_chat_header              顶部 64px 条 */
+/* ✅ #nj_chat_messages            消息流容器（滚动区） */
+/* ✅ #nj_chat_sidebar             左侧会话列表 sidebar */
+/* ✅ #nj_back_button              返回按钮 */
+/* ✅ #nj_header_clarity_btn       调试模式 toggle（仅 owner 可见） */
+/* 📦 #nj_header_follow_btn        关注按钮 placeholder（hidden + aria-hidden，
+ *    社交功能 v1 后置；DOM 节点存在供 creator CSS 命中，
+ *    需主动 `display: block` 才可见） */
+/* 📦 #nj_header_message_btn       私信按钮 placeholder（同上） */
+/* ✅ #nj_header_more_btn          更多菜单触发按钮 */
+/* ✅ #nj_header_more_menu         更多菜单内容容器（打开时挂载） */
+/* ✅ #nj_author_note              作者的话条幅（仅当 character.creatorNote
+ *    非空时渲染；条件 DOM，空字段不挂节点） */
+
+/* ──────────────────────────────────────────────────────────
+ * §2 · 输入区
+ * ────────────────────────────────────────────────────────── */
+
+/* ✅ #nj_chat_input_container     输入区 wrapper */
+/* ✅ #nj_chat_input_box           textarea 容器 */
+/* ✅ #nj_chat_send_button         发送按钮 */
+/* ✅ #nj_chat_input_replay_btn    重说按钮（重新生成上一条 AI 回复） */
+/* ✅ #nj_chat_input_model_btn     模型选择按钮（包裹 ModelPicker 组件） */
+
+/* ──────────────────────────────────────────────────────────
+ * §3 · 消息分型 class（最常用的一组 ★）
+ *
+ * 这些 class 由 react-markdown components 路由后由组件挂在
+ * 最外层 wrapper 上。覆盖样式时记得：
+ *   - 主色优先用 var(--accent-primary) 等 token，少写死 hex
+ *   - 覆盖渐变填充组件（narration / emphasis）要重置
+ *     -webkit-text-fill-color，见 §3.x
+ * ────────────────────────────────────────────────────────── */
+
+/* ✅ .nj_ai_message_bubble        <message> / fallback
+ *    host 默认：暗紫底 + violet 边 + 18px 圆角 */
+/* ✅ .nj_user_message_bubble      用户消息（<pre>，保留换行）
+ *    host 默认：主色实底，最醒目 */
+
+/* ✅ .nj_message_narration        <narration> / <nar>
+ *    host 默认：渐变填充 + 斜体，无气泡，文字直接浮在立绘上
+ *    覆盖时坑：
+ *      background-image 不重置会继续走渐变；
+ *      -webkit-text-fill-color 不重置则纯色仍透明。
+ *    范例：
+ *      .nj_message_narration {
+ *        background-image: none !important;
+ *        -webkit-text-fill-color: #c5a059 !important;
+ *        color: #c5a059 !important;
+ *      } */
+
+/* ✅ .nj_message_system           <system> / <sys>
+ *    host 默认：居中 max-440px 玻璃胶囊 + 极淡金边 */
+
+/* ✅ .nj_message_think            <think>
+ *    host 默认：左侧紫色提示条 + 半透明（默认展开） */
+
+/* ✅ .nj_scenario_section         <scenario> / <sce>
+ *    host 默认：无视觉，仅 className 钩子 */
+
+/* ✅ .nj_emphasis_text            **xxx**
+ *    host 默认：inline 渐变填充粗体（fuchsia → 金 → 紫）
+ *    覆盖坑：同 .nj_message_narration */
+
+/* ✅ .nj_code_block               普通代码块（非 html/svg/mermaid/markmap） */
+/* ✅ .nj_artifact_iframe          <artifact> 包裹的 sandbox iframe */
+/* ✅ .nj_regex_iframe             regex 替换整体落到 <artifact> envelope 的 iframe */
+
+/* ──────────────────────────────────────────────────────────
+ * §4 · AI 气泡消息操作菜单
+ *
+ * ⚠️ 多实例：单页同时存在多条 AI 消息时，下列 id 会重复（每条消息
+ *    一个 trigger）。creator CSS 用 #id 只命中第一个实例，**建议用
+ *    同名 class**（.nj_message_actions_btn 等）写全局规则。dropdown
+ *    内的 id 仅在打开时存在（Radix Portal 关闭即卸载）。
+ * ────────────────────────────────────────────────────────── */
+
+/* ✅ #nj_message_actions_box       菜单容器（Radix Portal，打开时挂载） */
+/* ✅ #nj_message_actions_btn       单条操作按钮（trigger，推荐用 .nj_message_actions_btn class） */
+/* ✅ #nj_message_actions_delete    删除项（含 disabled 变体） */
+/* 🚧 #nj_message_actions_edit      编辑项（AI 气泡无 edit 功能，v1 后置） */
+/* ✅ #nj_message_actions_copy      复制项 */
+/* ✅ #nj_message_actions_continue  续写项（仅最后一条 AI 气泡可用） */
+
+/* ──────────────────────────────────────────────────────────
+ * §5 · 通用类
+ * ────────────────────────────────────────────────────────── */
+
+/* ✅ .nj_chat_sidebar_item        sidebar 单条会话条目 */
+/* ✅ .nj_symbol                   tool-mode symbol_match regex 工具产出 */
+
+/* ──────────────────────────────────────────────────────────
+ * §6 · 📦 模板 / 官方 pack 私有 class（仅供借鉴，不是公约）
+ *
+ * 来自官方模板 (templates.ts)：
+ *   .nj_env_panel        env_state_panel 模板
+ *   .nj_memory           dynamic_memory 模板
+ *
+ * 来自官方手机 pack (yearn-phone.ts)：
+ *   .nj_phone_*          全套 .nj_phone_shell / frame / app / wechat /
+ *                        notes / wallet / weibo / placeholder ...
+ *                        这些 class 跑在 <artifact> iframe 里，
+ *                        不会污染 host 文档，creator 不需要在 globalCss
+ *                        里处理它们。
+ * ────────────────────────────────────────────────────────── */
+
+/* ──────────────────────────────────────────────────────────
+ * §7 · 常见坑提示
+ *
+ * 1. 通用 selector 被 sanitize 丢弃：
+ *      body / html / :root / * 一律不允许
+ *      ─ 走 nj_* 公约就好。
+ *
+ * 2. position: fixed / sticky 被禁：
+ *      防止 creator 注入"全屏接管 UI" → 影响 host 控件。
+ *      要做"贴底浮窗"，用 <artifact> iframe 内部实现。
+ *
+ * 3. cursor: none / pointer-events 被禁：
+ *      避免恶意 pack 让 host 控件无法操作。
+ *
+ * 4. !important 不是好习惯但 v1 允许：
+ *      因为多 pack 注入按订阅顺序拼接合并，
+ *      最稳的覆盖手段还是 !important。v2 会改 @scope 路径。
+ *
+ * 5. @import 一律禁用：
+ *      想引用外部字体，直接 url() 引用 google fonts CDN，
+ *      或在 <artifact> iframe 内通过白名单 CDN 加载。
+ * ────────────────────────────────────────────────────────── */

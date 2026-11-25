@@ -1,0 +1,12 @@
+import {readFile,writeFile} from 'node:fs/promises';
+const root='logs/mufy-profiles/full-20261013/next-batch-5-20261019';
+const release=JSON.parse(await readFile(root+'/public-test-release-20261023.json','utf8'));
+if(release.rows.length!==5||new Set(release.rows.map((r:{id:string})=>r.id)).size!==5||release.rows.some((r:{publicVerified:boolean})=>r.publicVerified!==true))throw Error('FIVE_PUBLIC_UI_RECEIPTS_REQUIRED');
+const close=JSON.parse(await readFile(root+'/scoped-trial-closeout-20261022.json','utf8'));
+const planPath=root+'.json',plan=JSON.parse(await readFile(planPath,'utf8'));
+const startedAt=plan.timing.startedAt,finishedAt=close.observedAt;
+const result={startedAt,finishedAt,calendarElapsedMs:Date.parse(finishedAt)-Date.parse(startedAt),timezone:'Asia/Shanghai',completeNetWorkTimeAvailable:false,limits:['Calendar span includes user/scheduler waits, engineering diagnosis, agent compatibility fixes and retesting. It is not continuous active work.','Timing log omits portions of browser/diagnostic work; missing time must not be invented.','Parent and child execution spans overlap; summing raw log durations is not valid total work time.'],sourceTimingLog:'timing-runs.jsonl',publicRelease:'public-test-release-20261023.json'};
+await writeFile(root+'/five-card-time-disclosure-20261023.json',JSON.stringify(result,null,2));
+plan.stage='five-cards-public-test-ready';plan.publicRelease='next-batch-5-20261019/public-test-release-20261023.json';plan.timing.finishedAt=finishedAt;
+await writeFile(planPath,JSON.stringify(plan,null,2));
+console.log(JSON.stringify({calendarHours:result.calendarElapsedMs/3600000,startedAt,finishedAt,public:release.rows.map((r:{name:string,id:string})=>({name:r.name,url:'http://115.29.213.73:8091/chat/'+r.id})),completeNetWorkTimeAvailable:false}));

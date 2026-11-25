@@ -1,0 +1,26 @@
+import postcss from 'postcss';
+import {writeFile,appendFile} from 'node:fs/promises';
+import {sanitizeAndScopeCss} from '../src/lib/styling/whitelist';
+const root='logs/mufy-profiles/full-20261013/next-batch-10-20261023';
+const startedAt=new Date().toISOString(), tick=performance.now();
+const assets=await Bun.file(`${root}/char_05fea4746330353011b9-public-render-assets.json`).json();
+const matches=(assets.styles as string[]).filter(s=>s.includes('.censy-quad-title'));
+if(matches.length!==1)throw Error('EXACT_SOURCE_STYLE_REQUIRED');
+const parsed=postcss.parse(matches[0]);
+const rules:string[]=[];
+parsed.walkRules(rule=>{
+ if(!rule.selector.includes('.censy-quad-status-container')||!rule.selector.includes('details'))return;
+ const clone=rule.clone();
+ clone.selectors=clone.selectors.map(s=>'#nj_chat_messages '+s.replace(/\.censy-quad-status-container\s*>?\s*details/g,'details:has(> summary > .censy-quad-title)'));
+ if(clone.selectors.some(s=>s.endsWith('> summary')))clone.append({prop:'display',value:'block'});
+ rules.push(clone.toString());
+});
+if(rules.length!==4)throw Error('EXPECTED_FOUR_SOURCE_STATUS_RULES');
+const patch='/* PUBLIC_STATUS_STRUCTURE_REPAIR_QIE */\n'+rules.join('\n');
+const probe=sanitizeAndScopeCss(patch,'qie-status');
+if(probe.warnings.length)throw Error(JSON.stringify(probe.warnings));
+const local=await Bun.file(`${root}/prepared/char_05fea4746330353011b9/prepared.json`).json();
+await writeFile(`${root}/qie-theme-before-status-css-repair.css`,local.beautification.globalCss);
+await writeFile(`${root}/qie-theme-after-status-css-repair.css`,patch+'\n'+local.beautification.globalCss);
+await appendFile(`${root}/timing-runs.jsonl`,JSON.stringify({stepId:'qie-public-status-structure-css',startedAt,finishedAt:new Date().toISOString(),elapsedMs:performance.now()-tick,kind:'local-processing-with-file-io',netWorkMs:null})+'\n');
+console.log(JSON.stringify({sourceRules:rules.length,promptChanged:false}));

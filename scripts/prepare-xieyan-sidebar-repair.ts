@@ -1,0 +1,16 @@
+import { readFile, writeFile, appendFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { repairMufySidebarBoundary } from '../src/lib/import/mufy-sidebar-boundary';
+import { routeOpeningContentSplit } from '../src/lib/opening/content';
+const startedAt = new Date().toISOString();
+const tick = performance.now();
+const root = 'logs/mufy-profiles/full-20261013/next-batch-10-20261023';
+const prepared = JSON.parse(await readFile(join(root, 'prepared/char_74f0f9f5249f6fb2280f/prepared.json'), 'utf8'));
+const before: string = prepared.beautification.openingComponent;
+const after = repairMufySidebarBoundary(before);
+if (after.length !== before.length + 4 || repairMufySidebarBoundary(after) !== after) throw Error('Unexpected repair');
+const routed = routeOpeningContentSplit(after);
+if (routed.floating.length !== 1 || /^html\s/.test(routed.floating[0].srcdoc) || /```<\/div>/.test(routed.floating[0].srcdoc)) throw Error('Sidebar boundary still invalid');
+await writeFile(join(root, 'xieyan-opening-boundary-repaired.html'), after);
+await appendFile(join(root, 'timing-runs.jsonl'), JSON.stringify({startedAt,finishedAt:new Date().toISOString(),kind:'offline-sidebar-repair-validation',elapsedMs:Math.round(performance.now()-tick),browserWaitIncluded:false})+'\n');
+console.log(JSON.stringify({addedCharacters:after.length-before.length,floatingCount:routed.floating.length,appliedToTestSite:false}));

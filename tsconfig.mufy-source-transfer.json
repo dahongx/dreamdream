@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {"incremental": false, "plugins": [], "skipLibCheck": true},
+  "include": ["next-env.d.ts", "src/types/jsdom-capture.d.ts", "src/lib/import/mufy-source-rule-transfer.ts", "src/lib/import/mufy-source-rule-envelope.ts", "src/components/chat/MufyReplyPet.tsx", "src/components/chat/MufyReplySidebar.tsx", "src/components/chat/MufyComposerCompanion.tsx", "src/components/chat/OpeningSlot.tsx", "scripts/prepare-mufy-next-ten.ts", "scripts/prepare-mufy-batch30-rule-repairs.ts", "scripts/stage-mufy-native-ornament.ts", "scripts/stage-mufy-native-pixel-music.ts", "scripts/stage-mufy-native-black-sidebar.ts", "scripts/checkpoint-mufy-public-components.ts"],
+  "files": ["src/components/chat/FloatingSlot.tsx", "src/components/chat/ChatMessagesList.tsx", "src/components/chat/__tests__/native-image-sidebar.test.tsx", "src/components/chat/__tests__/native-image-sidebar-lifecycle.test.tsx", "src/components/chat/__tests__/opening-slot-composer.test.tsx", "src/lib/import/__tests__/mufy-public-component-coverage.test.ts", "scripts/stage-mufy-native-image-sidebar.ts", "scripts/stage-mufy-missing-public-components.ts", "scripts/audit-mufy-public-component-coverage.ts", "scripts/stage-mufy-native-music-sidebar.ts", "scripts/stage-mufy-native-meme-library.ts", "scripts/stage-mufy-native-instructions.ts", "scripts/stage-mufy-native-text-styles.ts", "scripts/audit-mufy-native-fragment-styles.ts", "scripts/record-mufy-observed-component-mapping.ts"],
+  "exclude": ["node_modules"]
+}

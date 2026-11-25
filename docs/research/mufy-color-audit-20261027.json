@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-27",
+  "status": "investigation-in-progress-no-runtime-change",
+  "scope": "Read-only public rendered DOM on Mufy and 8091; no credentials or database access",
+  "backgroundComparisons": {
+    "cards": ["亓厄", "傅池零", "程烽"],
+    "sourceOverlay": "rgba(0, 0, 0, 0.6)",
+    "targetOverlay": "oklch(0.18311 0.0308867 263.397 / 0.6)",
+    "targetBrightness": "brightness(1)",
+    "conclusion": "Confirmed hue/compositing difference, not proof of lower luminance. A blue overlay is not intrinsically darker than equal-opacity black."
+  },
+  "componentComparisons": [
+    {
+      "card": "程烽",
+      "matched": ["fog-frame-ex", "silver-tag-ex", "censy-phone-os", "sys-inter-quote"],
+      "explicitPanelColors": "equal",
+      "statusHeadingColor": "rgb(208, 208, 208) on both sites",
+      "sourceBodyColor": "rgb(0, 0, 0)",
+      "targetBodyColor": "rgb(240, 222, 183)"
+    },
+    {
+      "card": "君离殇",
+      "matched": ["map-section", "nation-xia", "nation-xiling"],
+      "explicitPanelBackgrounds": "equal",
+      "sourceBodyColor": "rgb(0, 0, 0)",
+      "targetBodyColor": "rgb(244, 244, 244)"
+    },
+    {
+      "card": "谢衍",
+      "matched": ["progress-bar-container", "cealis-ins-app", "cealis-content-wrapper"],
+      "explicitPanelBackgrounds": "equal",
+      "insPanelColor": "rgb(38, 38, 38) on both sites",
+      "sourceBodyColor": "rgb(0, 0, 0)",
+      "targetBodyColor": "rgb(226, 232, 240)",
+      "screenshots": "Viewed live but scroll positions and viewport sizes differed; not a pixel-parity comparison"
+    },
+    {
+      "card": "段嘉辰",
+      "matched": ["censy-t-line", "censy-bar", "c-ar-zh", "slice-name", "s-tag", "wx-n"],
+      "explicitColors": "equal after matching class plus text",
+      "sourceBodyColor": "rgb(0, 0, 0)",
+      "targetBodyColor": "rgb(255, 255, 255)",
+      "excluded": "Hidden source iframe was not inspected. Text-only matching produced false positives due to repeated labels and was discarded."
+    }
+  ],
+  "confirmedCodeMechanisms": [
+    "OpeningSlot injects sanitized whole-page globalCss into every independent opening iframe; scope is attached to iframe body. This changes root inherited color and text shadow even where the source iframe did not inherit host CSS.",
+    "PLATFORM_RESET_STYLE_TAG forces html/body background transparent!important and defaults text to #e2e8f0. Explicit root backgrounds may be erased; current sampled component bodies were already transparent at source, so root background loss is not yet a proven cause for these samples.",
+    "ChatStage uses an inline theme-tinted overlay. Ordinary stylesheet background declarations cannot override the inline declaration without important.",
+    "Target body has vignette and scanline pseudo-elements. In the measured Duan page chat root z-index is 3, above body pseudo z-index 1/2; their mere existence is not proof they darken chat content."
+  ],
+  "safeNextVerification": [
+    "Match visible leaf elements by class/structural identity plus text, not text alone.",
+    "Compare same component, viewport, scroll position, expanded state and source asset before attributing brightness differences to theme.",
+    "Prove an authored-root-background case before removing transparency reset globally; existing message canvases depend on transparency.",
+    "Separate independent source iframe skin from host-page skin, while retaining required source-local variables and authored styles; verify against existing component and reply tests before deployment."
+  ],
+  "mutations": "Only this research checkpoint; no application code, card data, server or database change"
+}

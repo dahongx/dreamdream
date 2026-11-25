@@ -1,0 +1,36 @@
+
+(function(){
+    let mTarget = window.parent.document.querySelector('meta[name="referrer"]');
+    if (!mTarget) { mTarget = window.parent.document.createElement('meta'); mTarget.name = "referrer"; mTarget.content = "no-referrer"; window.parent.document.head.appendChild(mTarget); } else { mTarget.content = "no-referrer"; }
+
+    try {
+        const oldBox = window.parent.document.getElementById('C_GhostTrigger_Box');
+        if(!oldBox) {
+          const temp = document.getElementById('censy-ghost-music-v4');
+          const frag = document.createRange().createContextualFragment(temp.innerHTML);
+          window.parent.document.body.appendChild(frag);
+        }
+
+        window.parent.C_G_Tracks = [
+          "http://dlink.host/1drv/aHR0cHM6Ly8xZHJ2Lm1zL3UvYy84ZDBmY2RjOWQ4ZWRmN2FiL0VSRldITkFkVTVGR2dUQWdpLWE1MlVvQjZRYWJFbXRnSG56THhKZkhjdVpDMGc_ZT12VHlHaVI.mp3",
+          "http://music.163.com/song/media/outer/url?id=1303042675.mp3",
+          "http://music.163.com/song/media/outer/url?id=30064893.mp3"
+        ];
+        if(typeof window.parent.C_G_Index === 'undefined') window.parent.C_G_Index = 0;
+        if(typeof window.parent.C_G_IsPlaying === 'undefined') window.parent.C_G_IsPlaying = false;
+
+        window.parent.Z_ToggleGhostPanel = function() { const p = window.parent.document.getElementById('C_GhostPlayer_Panel'); if(p) p.classList.toggle('c_panel_open'); };
+        window.parent.Z_ToggleGhostAudio = function() {
+          const ae = window.parent.document.getElementById('C_Ghost_AudioEngine'); const btn = window.parent.document.getElementById('C_Ghost_PlayBtn'); const wave = window.parent.document.getElementById('C_Ghost_Wave');
+          if(!ae.src) ae.src = window.parent.C_G_Tracks[window.parent.C_G_Index];
+          if(window.parent.C_G_IsPlaying) { ae.pause(); btn.classList.replace('c_state_play', 'c_state_pause'); wave.classList.remove('c_is_playing'); window.parent.C_G_IsPlaying = false; } 
+          else { ae.play().catch(e=>console.log("Blocked")); btn.classList.replace('c_state_pause', 'c_state_play'); wave.classList.add('c_is_playing'); window.parent.C_G_IsPlaying = true; }
+        };
+        window.parent.Z_SwitchGhostTrack = function(idx) {
+          window.parent.C_G_Index = idx; const ae = window.parent.document.getElementById('C_Ghost_AudioEngine'); const items = window.parent.document.querySelectorAll('.c-track-item');
+          items.forEach((it, i) => { i === idx ? it.classList.add('c_active_track') : it.classList.remove('c_active_track') });
+          ae.src = window.parent.C_G_Tracks[idx];
+          if(window.parent.C_G_IsPlaying) { ae.play().catch(e=>{}); } else { window.parent.Z_ToggleGhostAudio(); }
+        };
+    } catch(e) {}
+})();

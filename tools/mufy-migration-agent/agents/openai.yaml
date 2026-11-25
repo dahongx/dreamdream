@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mufy 迁移与验收"
+  short_description: "按分工迁移角色卡，自查差异、修复并复验，留存版本和逐卡证据"
+  default_prompt: "使用 $mufy-migration-agent 按协调者分配的名单迁移并自查自修，全部完成实际验收后再交我审阅。"

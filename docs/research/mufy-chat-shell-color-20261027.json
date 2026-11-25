@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-27",
+  "method": "Read-only browser DOM, computed CSS and visible style elements; no database or credentials",
+  "deployedChange": false,
+  "cards": [
+    {
+      "name": "程烽",
+      "headerAndComposer": "Source and target both rgba(61,63,71,.6), blur(12px)",
+      "inputBox": "Source and target both rgba(36,37,42,.7)",
+      "sourceStageBase": "rgb(73,76,84)",
+      "targetStageBase": "Transparent ancestors reveal platform rgb(11,18,32)",
+      "sourceOverlay": "rgba(0,0,0,.6)",
+      "targetOverlay": "oklch(0.18311 0.0308867 263.397 / .6)",
+      "conclusion": "Identical translucent author colors composite over different base and overlay colors"
+    },
+    {
+      "name": "傅池零",
+      "sourceComposer": "transparent",
+      "targetComposer": "rgb(19,27,43)",
+      "sourceInputBox": "rgba(0,0,0,.2), blur(12px)",
+      "targetInputBox": "rgb(26,36,56), no blur",
+      "sourceHeader": "transparent, blur(12px)",
+      "targetHeader": "transparent, no blur",
+      "sourceVariables": { "--input-box-bg": "rgba(0, 0, 0, 0.2)", "--backdrop-blur-radius": "12px", "--color-text-main": "#F0F2F5" },
+      "targetVariables": "All three empty at input box",
+      "conclusion": "Author rules/variables do not take effect; platform fallback surfaces remain. Same stage-base mismatch as first card.",
+      "unconfirmed": "Exact originating transform that breaks rules/variables requires pipeline tracing; do not attribute solely to sanitizer yet"
+    }
+  ],
+  "nextScope": ["Source CSS variable and parser preservation", "Opt-in source-compatible chat backdrop, separate from global platform tokens", "Header, composer, message and status panel real-card regression"],
+  "previousPrototype": "Independent iframe isolation does not resolve these chat-shell defects"
+}

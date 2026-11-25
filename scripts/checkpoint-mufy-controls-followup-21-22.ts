@@ -1,0 +1,12 @@
+/** Evidence reconciliation only; no build, deployment, account or model access. */
+import {readFile,writeFile,appendFile} from 'node:fs/promises';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',read=async(p:string)=>JSON.parse(await readFile(root+'/'+p,'utf8'));
+const qa=await read('qa-progress.json'),inline=await read('final-acceptance/21/inline-instruction-check.json'),width=await read('final-acceptance/21/inline-width-local-ui-check.json'),quick=await read('final-acceptance/22/quick-symbols-local-ui-check.json'),fixed=quick.fixedSequentialReplay;
+if(qa.imported!==28||qa.held!==2||qa.fullFidelityAccepted!==0||!inline.textEqualAfterRoleBinding||width.mobile.client!==width.mobile.scroll||width.sends!=='0'||fixed.first.value!=='a（）c'||fixed.first.caret!==2||fixed.final.value!=='a（$）c$线上聊天：'||fixed.final.caret!==11||fixed.sendCount!=='0'||fixed.scrollWidgetCount!==0||fixed.viewport.scroll>fixed.viewport.width)throw Error('CURRENT_UI_PROOF_REQUIRED');
+const row21=qa.rows.find((x:{rank:number})=>x.rank===21),row22=qa.rows.find((x:{rank:number})=>x.rank===22);
+row21.inlineInstructionFollowup={evidence:['final-acceptance/21/inline-instruction-check.json','final-acceptance/21/inline-width-local-ui-check.json'],bodyTextMatchesAfterRoleBinding:true,sourceAndTargetOriginalOverflow:true,localSummaryBoxModelRepaired:true,mobileClient:width.mobile.client,mobileScroll:width.mobile.scroll,ownerUiSaved:false,fullFidelityAccepted:false};
+row22.quickSymbolFollowup={evidence:'final-acceptance/22/quick-symbols-local-ui-check.json',localCandidateOnly:true,continuousCaretTimingRepaired:true,unrelatedFoxScrollNotAdded:true,stillPendingSourceIndexes:[1,2],ownerUiSaved:false,fullFidelityAccepted:false};
+qa.observedAt=new Date().toISOString();await writeFile(root+'/qa-progress.json',JSON.stringify(qa,null,2)+'\n');
+const prior=await readFile(root+'/timing-runs.jsonl','utf8'),items=[];for(const[rank,name,e]of [[21,'inline-source-target',inline],[21,'inline-width-local',width],[22,'quick-original',quick.originalImmediateReadAttempt],[22,'quick-fixed',fixed]] as const){const id=`controls-followup-${rank}-${name}-${e.observedAt}`;if(!prior.includes(id))items.push({id,rank,observedAt:e.observedAt,elapsedMs:e.elapsedMs,kind:'browser-operation-wall-not-agent-net',agentNetMs:null});}
+if(items.length)await appendFile(root+'/timing-runs.jsonl',items.map(x=>JSON.stringify(x)).join('\n')+'\n');
+console.log(JSON.stringify({newTimingSteps:items.length,fullFidelityAccepted:0,buildStarted:false}));

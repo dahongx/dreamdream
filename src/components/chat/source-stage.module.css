@@ -1,0 +1,28 @@
+/* Measured source defaults, not Dearm theme tokens. Opt-in only: ordinary
+   platform chats retain their palette. Author-scoped rules can override these
+   zero-specificity defaults without !important. */
+:where(.sourceStage) {
+  --nj-source-stage-base: #494c54;
+  --nj-chat-overlay: rgba(0, 0, 0, 0.6);
+  /* Unstyled host surfaces must stay neutral inside an imported scene. These
+     scoped fallbacks do not replace any creator-authored control colors. */
+  --bg-elevated: transparent;
+  --surface-glass: rgba(0, 0, 0, 0.2);
+  --surface-solid: rgba(0, 0, 0, 0.4);
+  background-color: var(--nj-source-stage-base);
+  isolation: isolate;
+}
+
+.sourceStage :where(:global(#nj_chat_header), :global(#nj_chat_input_container)) {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+@media (max-width: 767px) {
+  /* Imported openings and replies share the source's mobile content column.
+     Let the browser handle overlay scrollbars on touch devices. */
+  :where(.sourceStage :global(#nj_chat_messages)) {
+    padding-inline: 12px;
+    scrollbar-width: thin;
+  }
+}

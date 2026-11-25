@@ -1,0 +1,13 @@
+/** Current local UI proof only, not full-card or deployed acceptance. */
+import {readFile,writeFile,appendFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',read=async(p:string)=>JSON.parse(await readFile(root+'/'+p,'utf8'));
+const qa=await read('qa-progress.json'),e=await read('final-acceptance/21/page-controls-local-ui-check.json'),stage=await read('rule-repairs/21/native-page-controls/candidate-proof.json');
+const runtimeSha256=createHash('sha256').update(await readFile('src/components/chat/MufySourceControls.tsx')).digest('hex');
+if(qa.imported!==28||qa.held!==2||qa.fullFidelityAccepted!==0||runtimeSha256!==e.runtimeSha256||e.afterBracket.value!=='a（）c'||e.afterBracket.start!==2||e.afterPhone.value!=='a（$）c$线上聊天：'||e.afterPhone.start!==11||Math.abs(e.bottom.top-e.bottom.max)>1||e.top.top!==0||e.final.sendCount!=='0'||e.final.frames!==0||e.final.viewport.w!==e.final.viewport.scroll||e.final.quickButtons.some((b:{w:number;h:number;bg:string;color:string})=>b.w!==32||b.h!==32||b.bg!=='rgba(40, 40, 45, 0.95)'||b.color!=='rgb(234, 234, 234)'))throw Error('CURRENT_CONTROLS_PROOF_REQUIRED');
+const row=qa.rows.find((r:{rank:number})=>r.rank===21);
+row.pageControlsCandidate={observedAt:e.final.observedAt,evidence:'final-acceptance/21/page-controls-local-ui-check.json',runtimeSha256,sourceIndexes:[7,9],localUiVerified:true,sourceStorageRead:false,authorProgramExecuted:false,ownerUiSaved:false,baselineRequiresFreshOwnerUiVerification:true,deployed:false,fullFidelityAccepted:false};
+row.targetedControlFollowup.remaining=[{sourceIndexes:[5,7,9],reason:'指令侧栏、快捷符号、独立回顶/到底已有本地验收候选，尚需新owner UI基线核对、整批预检后统一运行时发布与TEST验收。'}];
+qa.observedAt=new Date().toISOString();await writeFile(root+'/qa-progress.json',JSON.stringify(qa,null,2)+'\n');
+const old=await readFile(root+'/timing-runs.jsonl','utf8'),timings=[];for(const[i,x]of e.steps.entries()){const id=`page-controls-21-${x.observedAt}-${i}`;if(!old.includes(id))timings.push({id,rank:21,observedAt:x.observedAt,elapsedMs:x.elapsedMs,kind:'browser-operation-wall-not-agent-net',agentNetMs:null});}
+const id=`page-controls-stage-21-${stage.observedAt}`;if(!old.includes(id))timings.push({id,rank:21,observedAt:stage.observedAt,elapsedMs:stage.elapsedMs,kind:'local-process-wall-not-agent-net',agentNetMs:null});if(timings.length)await appendFile(root+'/timing-runs.jsonl',timings.map(x=>JSON.stringify(x)).join('\n')+'\n');console.log(JSON.stringify({rank:21,newTimingSteps:timings.length,imported:28,held:2,fullFidelityAccepted:0,ownerUiWrites:0,buildStarted:false}));

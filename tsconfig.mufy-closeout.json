@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false, "plugins": [] },
+  "include": [
+    "next-env.d.ts",
+    "scripts/finish-mufy-pilot-release.ts",
+    "scripts/record-mufy-reply-release-review.ts",
+    "scripts/build-mufy-pilot-reply-reports.ts",
+    "scripts/build-mufy-pilot-opening-reports.ts",
+    "scripts/start-mufy-next-five-ui-preflight.ts",
+    "scripts/stage-mufy-next-five-local-inputs.ts",
+    "scripts/reconcile-mufy-next-five-preflight.ts"
+  ]
+}

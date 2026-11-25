@@ -1,0 +1,10 @@
+import {useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {I18nProvider} from '../src/i18n/client';
+import {zh} from '../src/i18n/zh';
+import {OpeningSlot} from '../src/components/chat/OpeningSlot';
+import fixture from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/final-acceptance/49/local-fixtures/public-map-preview.json';
+import boundaries from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/final-acceptance/49/local-fixtures/fixed-canvas-preview.json';
+const documents=new URLSearchParams(location.search).has('boundaries49')?boundaries.map(f=>f.html):[fixture.document];
+function App(){const [count,setCount]=useState(0);return <><header id="nj_chat_header" style={{position:'fixed',top:0,left:0,right:0,height:64,background:'var(--bg-base)',zIndex:20}}>公开组件本地验收 · 未发布</header><main><button onClick={()=>setCount(n=>n+1)}>模拟回复重绘</button><span id="repaint-count">{count}</span><OpeningSlot components={documents.map((html,i)=>({id:'public-map-'+i,packId:'fixture',name:'Mufy source public component',content:'<artifact>'+html+'</artifact>',slotValues:{},enabled:true,orderIndex:i,createdAt:new Date(0),updatedAt:new Date(0)}))} character={{id:'fixture',name:'林叙',avatarUrl:null,tags:[],bio:null}} userName="验收用户" onSendMessage={()=>{throw Error('NO_SEND_ALLOWED')}}/><textarea id="draft" defaultValue=""/></main></>};
+createRoot(document.getElementById('preview-root')!).render(<I18nProvider locale="zh-TW" dict={zh}><App/></I18nProvider>);

@@ -1,0 +1,16 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+const path='src/components/chat/ChatRoom.tsx';
+const dir='outputs/reply-suggestions-20261027/alignment';
+const proc=Bun.spawnSync(['ssh','-o','BatchMode=yes','root@115.29.213.73',`cat /root/projects/yearn-chat/${path}`]);
+if(proc.exitCode)throw Error('READ_FAILED');
+const before=proc.stdout.toString();
+const old='min-h-13 min-w-0 flex-1 resize-none';
+if(before.split(old).length!==2)throw Error('PATCH_CONFLICT');
+const after=before.replace(old,'min-w-0 flex-1 self-center resize-none');
+const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+await mkdir(`${dir}/patch/src/components/chat`,{recursive:true});
+await writeFile(`${dir}/patch/${path}`,after);
+await writeFile(`${dir}/before.tsx`,before);
+await writeFile(`${dir}/manifest.json`,JSON.stringify({target:'TEST-8091',entries:[{path,before:hash(before),after:hash(after)}]},null,2));
+console.log('Prepared one scoped alignment edit against current TEST source; remote unchanged.');

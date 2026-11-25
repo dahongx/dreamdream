@@ -1,0 +1,17 @@
+/* Source-platform compatibility, not Dearm's default theme. Values observed
+   on public Mufy table rows; explicit author row backgrounds still win. */
+.sourceLightRows > :where(thead, tbody, tfoot) > tr {
+  background-color: #fff;
+}
+.sourceLightRows > :where(thead, tbody, tfoot) > tr:nth-child(even) {
+  background-color: #f0f0f0;
+}
+
+.nativeSource { width: 100%; min-width: 0; }
+/* The latest reply owns the one viewport sidebar; historical inline copies
+   must not remain in the scroll flow or create duplicate flame controls. */
+.withViewportSidebar :global(.mf-fire-widget) { display: none !important; }
+.withViewportSidebar :global(.right-stable-sidebar) { display: none !important; }
+.speechRow { display:flex; align-items:flex-start; gap:var(--space-md); margin:var(--space-sm) 0; }
+.speechAvatar { width:36px; height:36px; min-width:36px; border-radius:50%; object-fit:cover; }
+.speechRow > :global(.nj_ai_message_bubble) { min-width:0; max-width:calc(100% - 52px); }

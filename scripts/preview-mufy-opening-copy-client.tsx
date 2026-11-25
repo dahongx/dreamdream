@@ -1,0 +1,35 @@
+/** Real OpeningSlot + iframe draft RPC, synthetic public text only. */
+import {useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {I18nProvider} from '../src/i18n/client';
+import {zh} from '../src/i18n/zh';
+import {OpeningSlot} from '../src/components/chat/OpeningSlot';
+import avatars from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/rule-repairs/36/avatar-copy/frame.json';
+import phone from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/rule-repairs/22/phone-draft-relay/frame.json';
+import inlineInstruction from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/rule-repairs/21/inline-instruction-width/frame.json';
+import film49 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/rule-repairs/49/native-film-profile/frame.json';
+import parentTabs46 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/final-acceptance/46/parent-tabs-frame-20261031.json';
+import plate44 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/rule-repairs/44/public-plate-font/frame.json';
+import plate45 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/final-acceptance/45/public-font-frame-20261031.json';
+import oc47 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/final-acceptance/47/oc-form-frame-20261031.json';
+import divider43 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/rule-repairs/43/missing-divider/frame.json';
+import passive43 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/rule-repairs/43/missing-divider/passive-frame.json';
+import opening38Original from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/final-acceptance/38/opening-copy-frame-20261031.json';
+import avatars30 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/final-acceptance/30/avatar-copy-frame-20261031.json';
+import command26 from '../logs/mufy-profiles/full-20261013/next-batch-30-20261028/final-acceptance/26/public-command-copy-frame-20261031.json';
+const avatar30Mode=new URLSearchParams(location.search).has('avatars30');
+const avatarMode=avatar30Mode||new URLSearchParams(location.search).has('avatars');
+const phoneMode=new URLSearchParams(location.search).has('phone');
+const instructionMode=new URLSearchParams(location.search).has('instruction');
+const filmMode=new URLSearchParams(location.search).has('film49');
+const tabs46Mode=new URLSearchParams(location.search).has('tabs46');
+const plate44Mode=new URLSearchParams(location.search).has('plate44');
+const plate45Mode=new URLSearchParams(location.search).has('plate45');
+const oc47Mode=new URLSearchParams(location.search).has('oc47');
+const divider43Mode=new URLSearchParams(location.search).has('divider43');
+const passive43Mode=new URLSearchParams(location.search).has('passive43');
+const opening38Mode=new URLSearchParams(location.search).has('opening38')||new URLSearchParams(location.search).has('command26');
+const opening38=new URLSearchParams(location.search).has('command26')?command26:opening38Original;
+const components=[{id:'draft-fixture',packId:'fixture',name:'public command',content:avatar30Mode?avatars30.html:opening38Mode?opening38.html:passive43Mode?passive43.html:divider43Mode?divider43.html:oc47Mode?oc47.html:plate45Mode?plate45.html:plate44Mode?plate44.html:tabs46Mode?parentTabs46.html:filmMode?film49.html:instructionMode?inlineInstruction.html:phoneMode?phone.html:avatarMode?avatars.html:`<html><body><button onclick="window.host.fillComposer('公开测试指令')">复制公开指令</button></body></html>`,enabled:true,orderIndex:0,createdAt:new Date(0),updatedAt:new Date(0),slotValues:{}}];
+function Preview(){const[draft,setDraft]=useState(''),[sends,setSends]=useState(0);return <I18nProvider locale="zh-TW" dict={zh}><main><h1>开场复制链路 · 本地未发布</h1><p>{phoneMode?'公开小手机与真实追加草稿桥接，无账号、模型或数据库。':avatarMode?'原始公开头像组件与33张原图，无账号、模型或数据库。预览窗口只限制画布展示高度，不改候选文件。':'真实组件，仅合成公开文字，无账号、模型或数据库。'}</p>{avatarMode&&<style>{'#nj_opening_slot iframe{max-height:600px}'}</style>}<OpeningSlot components={components} character={{id:'fixture',name:'Fixture',avatarUrl:null,tags:[],bio:null}} userName="Fixture" onFillComposer={text=>setDraft(prev=>phoneMode?prev+(prev&&!prev.endsWith('\n')?'\n':'')+text:text)} onSendMessage={()=>setSends(n=>n+1)}/>{phoneMode&&<button type="button" onClick={()=>setDraft('')}>清空本地草稿</button>}<label>草稿<textarea id="preview-draft" value={draft} onChange={e=>setDraft(e.target.value)} /></label><p>发送次数：<output id="preview-sends">{sends}</output></p></main></I18nProvider>}
+createRoot(document.getElementById('preview-root')!).render(<Preview/>);

@@ -1,0 +1,14 @@
+/** Exact same public controls, explicit independent role config; never a card certificate. */
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {nativeImageSidebarEnvelope,extractNativeImageSidebars,type NativeImageSidebar} from '../src/lib/opening/native-image-sidebar';
+const tick=performance.now(),root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',out=root+'/rule-repairs/26/native-page-controls',read=async(p:string)=>JSON.parse(await readFile(root+'/'+p,'utf8'));
+const inventory=await read('final-acceptance/26/source-public-component-inventory.json'),source=await read('final-acceptance/26/source-page-controls-observation.json'),reference=await read('rule-repairs/21/native-page-controls/sidebar-spec.json') as NativeImageSidebar;
+const quick=inventory.roots[0].frames[6].html as string,scroll=inventory.roots[0].frames[9].html as string;
+const quickCss=/shadow\.innerHTML\s*=\s*`\s*<style>([\s\S]*?)<\/style>/.exec(quick)?.[1],css=/style\.innerHTML\s*=\s*`([\s\S]*?)`/.exec(scroll)?.[1];
+if(!source.rolePresent||source.quick?.buttons.length!==3||source.quick.buttons.map((b:{text:string})=>b.text).join('|')!=='（）|$|📱'||!source.scroll||quickCss!==reference.pageControls?.quickCss||css!==reference.css||!quick.includes("forceInput('（）', 1)")||!quick.includes("forceInput('$', 1)")||!quick.includes("forceInput('$线上聊天：', 6)"))throw Error('CURRENT_PUBLIC_CONTROLS_AND_EXACT_REFERENCE_REQUIRED');
+const spec:NativeImageSidebar={...reference,pageControls:{...reference.pageControls!,id:'jianxingzhou-public-controls-v7'}};
+const envelope=nativeImageSidebarEnvelope(spec);if(extractNativeImageSidebars(envelope).sidebars.length!==1)throw Error('SCHEMA_FAILED');
+const baseline=await readFile(root+'/final-acceptance/26/candidate-opening.txt','utf8');if(baseline.includes('native-page-controls'))throw Error('EXISTING_CONTROLS_REQUIRE_REVIEW');const candidate=baseline+'\n'+envelope,hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+await mkdir(out,{recursive:true});await writeFile(out+'/sidebar-spec.json',JSON.stringify(spec,null,2));await writeFile(out+'/candidate-opening.txt',candidate);
+const proof={rank:26,sourceIndexes:[6,9],observedAt:new Date().toISOString(),elapsedMs:performance.now()-tick,baselineSha256:hash(baseline),candidateSha256:hash(candidate),allOriginalCharactersPreserved:candidate.startsWith(baseline),stylesByteIdenticalToVerifiedRank21:true,localBehaviorReference:['final-acceptance/21/page-controls-after-caret-fix.json','final-acceptance/22/quick-symbols-local-ui-check.json'],notASeparateTargetUiTest:true,sourceStorageRead:false,authorProgramExecuted:false,baselineRequiresFreshOwnerUiVerification:true,ownerUiSaved:false,deployed:false,fullFidelityAccepted:false};await writeFile(out+'/proof.json',JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));

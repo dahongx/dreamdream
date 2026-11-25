@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.mufy-source-transfer.json",
+  "files": [
+    "src/components/chat/ChatRoom.tsx",
+    "src/components/chat/MufyPrefixPanel.tsx",
+    "src/lib/opening/composer-prefix.ts",
+    "src/lib/import/mufy-public-prefix-extractor.ts",
+    "scripts/stage-mufy-public-prefix-panels.ts",
+    "scripts/preview-mufy-prefix-client.tsx",
+    "scripts/audit-mufy-candidate-baselines.ts",
+    "src/lib/import/__tests__/mufy-candidate-baseline.test.ts",
+    "scripts/stage-mufy-xiemin-prefix.ts",
+    "scripts/stage-mufy-xiemin-static-music.ts",
+    "scripts/stage-mufy-xiemin-heart-navigation.ts"
+  ]
+}

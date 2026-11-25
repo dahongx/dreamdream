@@ -1,0 +1,91 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+# 本地临时调试目录（截图 / 浏览器调试脚本），不进版本库
+/test
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+/logs/*
+!/logs/.gitkeep
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+!.env.cloud.example
+
+# temporary admin scripts (do not commit)
+scripts/set-admin.ts
+scripts/check-admin.ts
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# claude code / ralph loop local workspace state
+.claude/
+
+# Codex worktrees, browser profiles, and one-off local probes
+/.codex/
+/.codex-tmp/
+/.codex-backups/
+/.tmp-*/
+
+# Root-level runtime/debug output
+/*.log
+/logs-cloud-test/
+/logs-migrate-mufy/
+/backups/
+/exports/
+
+# Raw third-party character exports may contain private account/card data.
+# Keep them local; commit only reviewed, normalized fixtures when required.
+/mufy-*-detail.json
+/mufy-*-runtime.json
+/mufy-six-role-details.json
+/selected_character_prompts*.json
+
+# OS / IDE
+.idea/
+.vscode/
+.gstack/
+
+# self-host Supabase 备份输出
+deploy/backups/
+
+# 外部角色卡导入原文留底（src/lib/import/external-card-backup.ts；env IMPORT_BACKUP_DIR 可覆盖路径）
+/data/card-imports/
+
+
+/test
+
+# UI 换皮原型与汇报用概念图（设计素材，非项目代码；勿提交）
+/outputs/

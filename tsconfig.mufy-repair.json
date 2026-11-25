@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {"incremental": false},
+  "include": ["next-env.d.ts", "src/types/jsdom-capture.d.ts", "src/lib/import/mufy-*.ts", "src/lib/__tests__/mufy-*.test.ts", "scripts/migrate-mufy-card.ts", "scripts/run-mufy-migration-agent.ts", "scripts/replay-mufy-pilot-batch.ts", "scripts/refresh-mufy-rendered-captures.ts", "scripts/stage-mufy-rendered-openings.ts", "scripts/repair-mufy-rendered-capture.ts", "scripts/optimize-mufy-pilot-cover.ts", "scripts/audit-mufy-pilot-opening-match.ts"],
+  "exclude": ["node_modules"]
+}

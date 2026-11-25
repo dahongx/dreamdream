@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false, "plugins": [] },
+  "include": [
+    "next-env.d.ts",
+    "src/types/jsdom-capture.d.ts",
+    "scripts/stage-mufy-batch30-saved-reply-preview.ts",
+    "scripts/mufy-saved-reply-rules.ts",
+    "scripts/preview-mufy-batch30-saved-replies-client.tsx",
+    "scripts/serve-mufy-batch30-saved-replies.ts",
+    "scripts/checkpoint-mufy-saved-reply-replay.ts",
+    "scripts/checkpoint-mufy-replay-nov1-followup.ts",
+    "scripts/stage-mufy-candidate-composition-preview.ts",
+    "scripts/preview-mufy-candidate-composition-client.tsx",
+    "scripts/checkpoint-mufy-candidate-composition.ts",
+    "scripts/audit-mufy-tested-runtime-alignment.ts",
+    "scripts/recheck-mufy-test-prebuild-baseline.ts",
+    "scripts/reconcile-mufy-roster-progress.ts",
+    "scripts/audit-mufy-batch30-phase-boundary.ts",
+    "scripts/checkpoint-mufy-ocean-followup.ts",
+    "scripts/audit-mufy-batch30-closeout-dependencies.ts"
+  ]
+}

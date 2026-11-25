@@ -1,0 +1,34 @@
+# Keep build context small. Anything not needed at build time stays out.
+node_modules
+.next
+out
+.git
+.gitignore
+
+# Local env — secrets must come from compose env_file at runtime.
+.env
+.env.*
+!.env.example
+
+# Editor / OS / agent caches
+.claude
+.gstack
+.vscode
+.idea
+.DS_Store
+logs
+
+# Docs / mocks aren't part of the runtime
+docs
+ui-mock
+RALPH-LOOP.md
+CHANGELOG.md
+
+# Compiled / generated artifacts
+*.tsbuildinfo
+next-env.d.ts
+coverage
+
+# Database volumes (permission issues during build)
+deploy/supabase/volumes/
+backups/

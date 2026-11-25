@@ -1,0 +1,162 @@
+_format_version: '2.1'
+_transform: true
+
+###
+### 裁剪版 Kong 网关声明式配置（寄情 self-host）。
+###
+### 源自官方 supabase/docker/volumes/api/kong.yml，按本仓库 self-host 方案删减:
+###   删: rest-v1 / graphql-v1 / realtime-v1-* / functions-v1 / meta / mcp* / dashboard(studio)
+###   留: auth-v1-open*（verify/callback/authorize/jwks/sso）、auth-v1、storage-v1、well-known-oauth
+###
+### 后果（有意为之）: 公网经 kong 只暴露 /auth/v1 与 /storage/v1。
+###   - 没有 /rest/v1 → PostgREST Data API 不对外，publishable key 公开也无法直连库越权
+###     （这是 self-host 比 Cloud 默认更可控的安全点；裸 IP 阶段因此可不开 RLS）。
+###   - Studio/meta 调试入口走可选 override（deploy/supabase/docker-compose.studio.yml），
+###     需要时单独叠加，基础栈保持最小公网面。
+###
+### LUA_AUTH_EXPR 由 kong-entrypoint.sh 注入（opaque key 未配置时回落 legacy 透传）。
+
+###
+### Consumers / Users
+###
+consumers:
+  - username: anon
+    keyauth_credentials:
+      - key: $SUPABASE_ANON_KEY
+      - key: $SUPABASE_PUBLISHABLE_KEY
+  - username: service_role
+    keyauth_credentials:
+      - key: $SUPABASE_SERVICE_KEY
+      - key: $SUPABASE_SECRET_KEY
+
+###
+### Access Control List
+###
+acls:
+  - consumer: anon
+    group: anon
+  - consumer: service_role
+    group: admin
+
+###
+### API Routes
+###
+services:
+  ## Open Auth routes
+  - name: auth-v1-open
+    _comment: 'Auth: /auth/v1/verify* -> http://auth:9999/verify*'
+    url: http://auth:9999/verify
+    routes:
+      - name: auth-v1-open
+        strip_path: true
+        paths:
+          - /auth/v1/verify
+    plugins:
+      - name: cors
+  - name: auth-v1-open-callback
+    _comment: 'Auth: /auth/v1/callback* -> http://auth:9999/callback*'
+    url: http://auth:9999/callback
+    routes:
+      - name: auth-v1-open-callback
+        strip_path: true
+        paths:
+          - /auth/v1/callback
+    plugins:
+      - name: cors
+  - name: auth-v1-open-authorize
+    _comment: 'Auth: /auth/v1/authorize* -> http://auth:9999/authorize*'
+    url: http://auth:9999/authorize
+    routes:
+      - name: auth-v1-open-authorize
+        strip_path: true
+        paths:
+          - /auth/v1/authorize
+    plugins:
+      - name: cors
+  - name: auth-v1-open-jwks
+    _comment: 'Auth: /auth/v1/.well-known/jwks.json -> http://auth:9999/.well-known/jwks.json'
+    url: http://auth:9999/.well-known/jwks.json
+    routes:
+      - name: auth-v1-open-jwks
+        strip_path: true
+        paths:
+          - /auth/v1/.well-known/jwks.json
+    plugins:
+      - name: cors
+
+  ## Secure Auth routes
+  - name: auth-v1
+    _comment: 'Auth: /auth/v1/* -> http://auth:9999/*'
+    url: http://auth:9999/
+    routes:
+      - name: auth-v1-all
+        strip_path: true
+        paths:
+          - /auth/v1/
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "Authorization: $LUA_AUTH_EXPR"
+          replace:
+            headers:
+              - "Authorization: $LUA_AUTH_EXPR"
+      - name: acl
+        config:
+          hide_groups_header: true
+          allow:
+            - admin
+            - anon
+
+  ## Storage API endpoint (with Authorization header transformation).
+  ## No key-auth — S3 protocol requests don't carry an apikey header.
+  ##
+  ## The request-transformer translates opaque API keys to asymmetric JWTs
+  ## and passes through existing Authorization headers (user JWTs, AWS SigV4).
+  ## When no Authorization or apikey header is present (S3 presigned URLs),
+  ## the Lua expression evaluates to nil which Kong renders as empty string.
+  ## The post-function strips this empty header so Storage's S3 signature
+  ## verification falls through to query-parameter parsing.
+  - name: storage-v1
+    _comment: 'Storage: /storage/v1/* -> http://storage:5000/*'
+    url: http://storage:5000/
+    routes:
+      - name: storage-v1-all
+        strip_path: true
+        paths:
+          - /storage/v1/
+    plugins:
+      - name: cors
+      - name: request-transformer
+        config:
+          add:
+            headers:
+              - "Authorization: $LUA_AUTH_EXPR"
+          replace:
+            headers:
+              - "Authorization: $LUA_AUTH_EXPR"
+      - name: post-function
+        config:
+          access:
+            - |
+              local auth = kong.request.get_header("authorization")
+              if auth == nil or auth == "" or auth:find("^%s*$") then
+                kong.service.request.clear_header("authorization")
+              end
+
+  ## OAuth 2.0 Authorization Server Metadata (RFC 8414)
+  - name: well-known-oauth
+    _comment: 'Auth: /.well-known/oauth-authorization-server -> http://auth:9999/.well-known/oauth-authorization-server'
+    url: http://auth:9999/.well-known/oauth-authorization-server
+    routes:
+      - name: well-known-oauth
+        strip_path: true
+        paths:
+          - /.well-known/oauth-authorization-server
+    plugins:
+      - name: cors

@@ -1,0 +1,23 @@
+/** Deprecated historical draft candidate. Never use this for a new migration. */
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {JSDOM} from 'jsdom';
+import {normalizePublicFrameReplay} from '../src/lib/import/mufy-public-frame-replay';
+import {adaptMufyAvatarDraftCopy} from '../src/lib/import/mufy-avatar-draft-copy';
+throw Error('LEGACY_DRAFT_CANDIDATE_RETIRED: preserve original public clipboard handlers; renderer now supplies finite clipboard compatibility. Existing audit artifacts must not be regenerated.');
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',dir=root+'/final-acceptance/36',out=root+'/rule-repairs/36/avatar-copy';
+const source=await readFile(dir+'/source-avatar-public-frame.html','utf8'),before=new JSDOM(source);
+const original=[...before.window.document.querySelectorAll('img')].map(e=>e.getAttribute('src'));
+const exact="navigator.clipboard.writeText(this.src);alert('Image Link Copied!')";
+if(original.length!==33||before.window.document.querySelectorAll('img[onclick]').length!==33||source.split(exact).length!==34)throw Error('KNOWN_AVATAR_COPY_REQUIRED');
+before.window.close();
+const candidate=normalizePublicFrameReplay(source).html.replaceAll("alert('Image Link Copied!')","alert('已填入草稿，请确认后发送。')");
+const after=new JSDOM(candidate),images=[...after.window.document.querySelectorAll('img')].map(e=>e.getAttribute('src'));
+if(JSON.stringify(original)!==JSON.stringify(images)||candidate.includes('navigator.clipboard')||candidate.split('window.host.fillComposer(this.src)').length!==34||candidate.includes('__MUFY_ARTIFACT_BRIDGE__'))throw Error('AVATAR_COPY_CANDIDATE_INVALID');
+after.window.close();await mkdir(out,{recursive:true});await writeFile(out+'/frame.json',JSON.stringify({html:candidate}));
+const hash=(s:string)=>createHash('sha256').update(s).digest('hex');await writeFile(out+'/candidate-proof.json',JSON.stringify({rank:36,observedAt:new Date().toISOString(),sourceSha256:hash(source),candidateSha256:hash(candidate),originalImagesPreserved:33,copyHandlersAdapted:33,copyOnlyFillsDraft:true,clipboardRead:false,ownerUiSaved:false,deployed:false,fullFidelityAccepted:false},null,2));
+console.log(JSON.stringify({rank:36,images:33,copyHandlers:33,ownerUiSaved:false}));
+const owner=await readFile(dir+'/owner-opening-avatar-baseline.txt','utf8'),ownerCandidate=adaptMufyAvatarDraftCopy(owner);
+if(ownerCandidate.adapted!==33)throw Error('OWNER_AVATAR_COPY_COUNT_CHANGED');
+await writeFile(out+'/candidate-opening.txt',ownerCandidate.html);
+await writeFile(out+'/owner-candidate-proof.json',JSON.stringify({rank:36,observedAt:new Date().toISOString(),baselineSha256:hash(owner),candidateSha256:hash(ownerCandidate.html),baselineCharacters:owner.length,adaptedHandlers:33,allOtherBytesPreserved:ownerCandidate.html.replaceAll("window.host.fillComposer(this.src);alert('已填入草稿，请确认后发送。')",exact)===owner,ownerUiSaved:false,deployed:false,fullFidelityAccepted:false},null,2));

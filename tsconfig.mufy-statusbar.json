@@ -1,0 +1,6 @@
+{
+ "extends":"./tsconfig.json",
+ "compilerOptions":{"incremental":false,"plugins":[],"skipLibCheck":true},
+ "include":["next-env.d.ts","src/components/chat/ChatMessagesList.tsx","src/components/chat/MessageBubble.tsx","src/components/chat/MessageRenderer.tsx","src/components/chat/MufyReplySidebar.tsx","src/lib/import/mufy-shared-component-style.ts"],
+ "exclude":["node_modules"]
+}

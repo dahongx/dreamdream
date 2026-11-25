@@ -1,0 +1,4 @@
+import{parseYanjProfileCandidate,type YanjProfileCandidate}from'@/lib/opening/yanj-profile';import{parseYanjGalleryCandidate,type YanjGalleryCandidate}from'@/lib/opening/yanj-gallery';
+export type YanjViewportCandidate=YanjProfileCandidate|YanjGalleryCandidate;
+/** OpeningSlot must never drop adjacent ordinary text to render a metadata marker. */
+export function parseYanjViewportFragment(input:string):YanjViewportCandidate|null{const trimmed=input.trim();if(!trimmed.startsWith('<template data-nj-yanj-'))return null;if((trimmed.match(/<template data-nj-yanj-(?:profile-v1|gallery-v3)>/g)||[]).length!==1||(trimmed.match(/<\/template>/g)||[]).length!==1)return null;if(!/^<template data-nj-yanj-(?:profile-v1|gallery-v3)>[\s\S]*<\/template>$/.test(trimmed))return null;const match=trimmed.match(/^<template[^>]+>[\s\S]*?<\/template>$/);if(!match||match[0]!==trimmed)return null;return parseYanjProfileCandidate(trimmed)??parseYanjGalleryCandidate(trimmed)}

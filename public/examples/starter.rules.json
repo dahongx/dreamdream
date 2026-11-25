@@ -1,0 +1,56 @@
+{
+  "format": "yearn.regex-rules",
+  "version": 1,
+  "exportedAt": "2026-05-19T00:00:00.000Z",
+  "rules": [
+    {
+      "name": "环境状态面板",
+      "mode": "tool",
+      "toolType": "code_component",
+      "targetText": "<env>\n  <time>13:37</time>\n  <weather>多云转小雨</weather>\n  <scene>霓虹未眠的弄堂</scene>\n</env>",
+      "pattern": "<env>\\s*<time>(.*?)</time>\\s*<weather>(.*?)</weather>\\s*<scene>(.*?)</scene>\\s*</env>",
+      "replacement": "<div class=\"nj_env_panel\" style=\"border:1px solid rgba(212,175,55,.4);padding:10px 12px;border-radius:8px;background:rgba(14,10,26,.6);margin-bottom:8px;font-size:13px\"><div style=\"font-family:'Noto Serif SC',serif;color:#d4af37\">🕘 $1</div><div style=\"color:#cbd5e1\">天气：$2</div><div style=\"color:#94a3b8;font-style:italic\">$3</div></div>",
+      "runtime": "sanitize",
+      "variableMapping": [
+        { "index": 1, "name": "time" },
+        { "index": 2, "name": "weather" },
+        { "index": 3, "name": "scene" }
+      ],
+      "outputGuidance": "在每次回复开头输出 <env><time>...</time><weather>...</weather><scene>...</scene></env>。",
+      "enabled": true,
+      "visible": true,
+      "orderIndex": 1
+    },
+    {
+      "name": "动态记忆区",
+      "mode": "tool",
+      "toolType": "code_component",
+      "targetText": "<memory>\n  <short>她刚提到她的猫叫做酥油。</short>\n  <long>她在魔都的弄堂里长大。</long>\n</memory>",
+      "pattern": "<memory>\\s*<short>(.*?)</short>\\s*<long>(.*?)</long>\\s*</memory>",
+      "replacement": "<details class=\"nj_memory\" open style=\"border:1px dashed rgba(212,175,55,.3);padding:10px;border-radius:6px;margin:8px 0\"><summary style=\"color:#d4af37;cursor:pointer\">📓 记忆区</summary><div style=\"margin-top:6px\"><strong>短期：</strong>$1</div><div style=\"margin-top:4px;color:#94a3b8\"><strong>长期：</strong>$2</div></details>",
+      "runtime": "sanitize",
+      "variableMapping": [
+        { "index": 1, "name": "short" },
+        { "index": 2, "name": "long" }
+      ],
+      "outputGuidance": "在剧情转折点输出 <memory><short>...</short><long>...</long></memory>，分别记录短期与长期记忆。",
+      "enabled": true,
+      "visible": true,
+      "orderIndex": 2
+    },
+    {
+      "name": "心理叙述",
+      "mode": "general",
+      "toolType": null,
+      "targetText": null,
+      "pattern": "<narration>(.*?)</narration>",
+      "replacement": "<div class=\"nj_message_narration\" style=\"color:#94a3b8;font-style:italic;border-left:2px solid rgba(212,175,55,.3);padding-left:10px;margin:4px 0\">$1</div>",
+      "runtime": "sanitize",
+      "variableMapping": [{ "index": 1, "name": "narration" }],
+      "outputGuidance": "用 <narration>...</narration> 包裹角色心理活动，会被渲染为斜体灰字。",
+      "enabled": true,
+      "visible": true,
+      "orderIndex": 3
+    }
+  ]
+}

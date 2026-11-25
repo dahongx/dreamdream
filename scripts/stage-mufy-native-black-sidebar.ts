@@ -1,0 +1,26 @@
+/** Bind an existing public program back to its CSS-focus drawer. */
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {normalizePublicFrameReplay} from '../src/lib/import/mufy-public-frame-replay';
+import {nativeImageSidebarEnvelope} from '../src/lib/opening/native-image-sidebar';
+import {routeOpeningContentSplit} from '../src/lib/opening/content';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',dir=`${root}/final-acceptance/44`,out=`${root}/rule-repairs/44/native-black-sidebar`;
+const source=JSON.parse(await readFile(`${dir}/source-native-black-sidebar-expanded.json`,'utf8'));
+const receipt=JSON.parse(await readFile(`${root}/normal-ui-import-receipts.json`,'utf8')).rows.find((r:{rank:number})=>r.rank===44);
+const baseline=await readFile(`${dir}/owner-opening-native-black-baseline.txt`,'utf8');
+const start=baseline.indexOf('<div class="midnight-black-trigger"'),fence=baseline.indexOf('```html',start),closeFence=baseline.indexOf('```',fence+7);
+const tail=/^\s*(?:<\/div>\s*)+<div class="close-mask-black"><\/div>/.exec(baseline.slice(closeFence+3));
+if(source.sourceUrl!==receipt.sourceUrl||source.styles.length!==1||start<0||fence<0||closeFence<0||!tail)throw Error('BLACK_SIDEBAR_BOUNDARY_UNPROVEN');
+const raw=baseline.slice(fence+7,closeFence);
+if(!raw.includes('</html>')||!['Beloved','Unknown Artist'].every(t=>raw.includes(t)&&source.frameHtml.includes(t)))throw Error('BLACK_PUBLIC_PROGRAM_IDENTITY_MISMATCH');
+const end=closeFence+3+tail[0].length;
+const spec={version:1 as const,variant:'black-focus' as const,shellHtml:'<div class="nj_native_black_shell"><div class="midnight-black-trigger" tabindex="0"></div><div class="midnight-black-container" tabindex="-1"><div class="nj_native_terminal_label">SYSTEM READY</div><div class="black-content-wrapper"><div data-nj-native-documents></div></div></div><div class="close-mask-black"></div></div>',css:source.styles[0],documents:[normalizePublicFrameReplay(raw).html],framePresentation:{minHeight:100,borderRadius:12}};
+const candidate=baseline.slice(0,start)+nativeImageSidebarEnvelope(spec)+baseline.slice(end);
+const routed=routeOpeningContentSplit(candidate,'native-black-44');
+const inline=routed.inline;
+const inlineMarkup=(inline?.kind==='iframe-multi'?inline.srcdocs.join('\n'):inline?.kind==='iframe'?inline.srcdoc:inline?.html??'').replace(/<(script|style|template)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,'');
+if(routed.floating.filter(w=>w.nativeImageSidebar?.variant==='black-focus').length!==1||/<div\b[^>]*class=["'][^"']*\bmidnight-black-trigger\b/i.test(inlineMarkup))throw Error('BLACK_SIDEBAR_ROUTING_DUPLICATE');
+await mkdir(out,{recursive:true});await writeFile(`${out}/sidebar-spec.json`,JSON.stringify(spec,null,2));await writeFile(`${out}/candidate-opening.txt`,candidate);
+const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+const proof={rank:44,observedAt:new Date().toISOString(),baselineSha256:hash(baseline),candidateSha256:hash(candidate),preservedPrefixCharacters:start,preservedSuffixCharacters:baseline.length-end,existingPublicProgramReused:true,sourceProgramCopiedOverOwner:false,documents:1,ownerUiSaved:false,deployed:false,fullFidelityAccepted:false};
+await writeFile(`${out}/candidate-proof.json`,JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));

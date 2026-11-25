@@ -1,0 +1,17 @@
+/** Reconcile observed controls; never promote full-card fidelity from counts. */
+import {readFile,writeFile,appendFile} from 'node:fs/promises';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',read=async(p:string)=>JSON.parse(await readFile(root+'/'+p,'utf8'));
+const qa=await read('qa-progress.json'),a=await read('final-acceptance/25/archive-forum-state-controls-check.json'),b=await read('final-acceptance/28/profile-and-state-controls-check.json');
+if(qa.imported!==28||qa.held!==2||qa.fullFidelityAccepted!==0||a.states.length!==12||b.states.length!==9)throw Error('COUNTS_OR_CONTROLS_CHANGED');
+if(!a.states.every((c:{before:boolean;during:{open:boolean};restored:boolean})=>c.before!==c.during.open&&c.restored)||!b.states.every((c:{before:boolean;during:{open:boolean};restored:boolean})=>c.before!==c.during.open&&c.restored))throw Error('CONTROLS_NOT_VERIFIED');
+qa.rows.find((r:{rank:number})=>r.rank===25).targetedControlFollowup={observedAt:a.observedAt,archivePages:3,memberModalsOpened:3,sealedCardsMatched:3,portraitOpenClosePaths:3,forumCommentGroups:3,forumTabs:3,authorNoteMatched:true,savedReplyControls:12,mobileTopLevelFolds:8,evidence:'final-acceptance/25/archive-forum-state-controls-check.json',fullFidelityAccepted:false};
+qa.rows.find((r:{rank:number})=>r.rank===28).targetedControlFollowup={observedAt:b.observedAt,profilePanels:7,profileTextsMatched:b.profile.every((c:{source:{text:string};target:{text:string}})=>c.source.text===c.target.text),guideTextMatched:b.guide.source===b.guide.target,savedStateControls:9,mobileCanvases:3,musicPlaybackAccepted:false,evidence:'final-acceptance/28/profile-and-state-controls-check.json',fullFidelityAccepted:false};
+qa.observedAt=new Date().toISOString();await writeFile(root+'/qa-progress.json',JSON.stringify(qa,null,2)+'\n');
+const previous=await readFile(root+'/timing-runs.jsonl','utf8'),timings=[];
+const c=await read('final-acceptance/45/profile-and-state-controls-check.json'),ins=await read('final-acceptance/45/ins-sidebar-local-ui-check.json');
+if(c.profile.length!==14||c.states.length!==8||ins.finalState.frames!==1||ins.finalState.sent!=='0'||ins.mobile.frame.height!==380||ins.audioAfter.currentTime<=ins.audioBefore.currentTime||!ins.audioPaused.paused)throw Error('INS_SIDEBAR_NOT_VERIFIED');
+qa.rows.find((r:{rank:number})=>r.rank===45).targetedControlFollowup={observedAt:ins.observedAt,sourceProfilePanels:14,savedReplyControls:8,mobileReplyChecks:8,missingNativeSidebarLocalCandidate:{tabs:3,playlistSongs:6,secondSongTimeAdvanced:true,draftOnly:true,parentRepaintStable:true,mobileSize:[260,380],ownerUiSaved:false,deployed:false,evidence:'final-acceptance/45/ins-sidebar-local-ui-check.json'},fullFidelityAccepted:false};
+await writeFile(root+'/qa-progress.json',JSON.stringify(qa,null,2)+'\n');
+for(const[rank,groups]of [[25,[a.archivePages,a.memberModalChecks,a.portraits,a.forumComments,a.forumTabs,a.states]],[28,[b.profile,b.states]]] as const){for(let g=0;g<groups.length;g++){for(const c of groups[g])if(typeof c.elapsedMs==='number'&&c.observedAt){const id=`controls-${rank}-${g}-${c.observedAt}-${c.index??c.page}`;if(!previous.includes(id))timings.push({id,rank,observedAt:c.observedAt,elapsedMs:c.elapsedMs,kind:'browser-operation-wall-not-agent-net',agentNetMs:null});}}}
+if(timings.length)await appendFile(root+'/timing-runs.jsonl',timings.map(t=>JSON.stringify(t)).join('\n')+'\n');
+console.log(JSON.stringify({ranks:[25,28],newTimingSteps:timings.length,fullFidelityAccepted:0,buildStarted:false}));

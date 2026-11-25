@@ -1,0 +1,33 @@
+/** Local evidence reconciliation only; no network, remote writes or acceptance promotion. */
+import {readFile,writeFile,appendFile} from 'node:fs/promises';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028';
+const read=async(path:string)=>JSON.parse(await readFile(`${root}/${path}`,'utf8'));
+const qa=await read('qa-progress.json');
+const now=new Date().toISOString();
+const proof39=await read('final-acceptance/39/profile-and-state-controls-check.json');
+if(proof39.profileControls.length!==2||proof39.stateControls.length!==15||!proof39.stateControls.every((c:{opened:{open:boolean};closed:{open:boolean}})=>c.opened.open&&!c.closed.open))throw Error('INCOMPLETE_CONTROL_CHECK_39');
+qa.rows.find((r:{rank:number})=>r.rank===39).targetedControlFollowup={observedAt:proof39.observedAt,evidence:'final-acceptance/39/profile-and-state-controls-check.json',profilePanelsTextMatched:proof39.profileControls.every((c:{source:{text:string};target:{text:string}})=>c.source.text===c.target.text),stateControlsPassed:15,originalImageLoaded:true,targetAudioTimeAdvanced:true,targetAudioPausedAfterCheck:true,mobileCssWidthVerified:390,mobileNoRootOverflow:true,fullFidelityAccepted:false};
+const proof40=await read('final-acceptance/40/music-canvas-owner-ui-repair.json');
+if(!proof40.ownerReloadMatchesCandidate||!proof40.ownerUiSaved||proof40.targetCanvasHeight!==100||proof40.introChecks.length!==4||proof40.anecdoteChecks.length!==3||!proof40.mobilePaused.paused)throw Error('INCOMPLETE_REPAIR_40');
+qa.rows.find((r:{rank:number})=>r.rank===40).targetedControlFollowup={observedAt:proof40.observedAt,evidence:'final-acceptance/40/music-canvas-owner-ui-repair.json',singleCardRepairCharacters:97,preservedOriginalCharacters:proof40.preservedOriginalCharacters,sourceAndTargetCanvasHeight:100,sevenTabsTextMatched:[...proof40.introChecks,...proof40.anecdoteChecks].every((c:{source:string;target:string})=>c.source===c.target),musicPlaybackAndPauseVerified:true,ownerReloadVerified:true,mobileChecked:true,built:false,fullFidelityAccepted:false};
+const proof33=await read('final-acceptance/33/phone-and-music-controls-check.json'),repair33=await read('final-acceptance/33/speech-decoration-owner-ui-repair.json');
+if(!repair33.ownerReloadMatchesCandidate||repair33.after.chat.clientWidth!==repair33.after.chat.scrollWidth||proof33.states.length!==8)throw Error('INCOMPLETE_REPAIR_33');
+qa.rows.find((r:{rank:number})=>r.rank===33).targetedControlFollowup={observedAt:repair33.observedAt,evidence:['final-acceptance/33/phone-and-music-controls-check.json','final-acceptance/33/speech-decoration-owner-ui-repair.json'],phoneTabs:4,friendReturnPaths:4,originalImagesLoaded:15,stateControls:8,musicPlayPauseSeekVerified:true,themeRepairCharacters:119,originalThemePreserved:true,decorationPreserved:true,mobileChatHasNoHorizontalOverflow:true,ownerReloadVerified:true,fullFidelityAccepted:false};
+const coverage=await read('public-component-coverage-audit.json');for(const rank of [33,39,40]){const measured=coverage.rows.find((r:{rank:number})=>r.rank===rank),row=qa.rows.find((r:{rank:number})=>r.rank===rank);if(measured?.coverage&&row.publicComponentFollowup?.sourceObservedAt===measured.sourceObservedAt)row.publicComponentFollowup.explicitUiCoverage=measured.coverage;}
+const receipts=await read('normal-ui-import-receipts.json');
+const source37Url=receipts.rows.find((r:{rank:number})=>r.rank===37)?.sourceUrl;
+if(typeof source37Url!=='string')throw Error('MISSING_SOURCE_IDENTITY_37');
+const scope37=await read('final-acceptance/37/scope-review-hold.json').catch(()=>({rank:37,name:'沈稚',observedAt:now,sourceUrl:source37Url,method:'Normal source-page public DOM; no hidden prompt read.',reason:'Public source explicitly combines adopted child / caregiver family relationship with sexualized alternate-opening instructions. Do not continue migration enhancement of this card.',status:'additional imported card held for content boundary; existing target not deleted or changed',fullFidelityAccepted:false}));
+await writeFile(`${root}/final-acceptance/37/scope-review-hold.json`,JSON.stringify(scope37,null,2)+'\n');
+qa.rows.find((r:{rank:number})=>r.rank===37).scopeHold={status:'held-imported-existing',evidence:'final-acceptance/37/scope-review-hold.json',existingTargetUnchanged:true,fullFidelityAccepted:false};
+qa.additionalImportedScopeHolds=1;
+qa.heldCountMeaning='held=2 not imported; additionalImportedScopeHolds=1 is already included in imported=28, not an additional card';
+qa.observedAt=now;
+if(qa.imported!==28||qa.held!==2||qa.fullFidelityAccepted!==0)throw Error('BATCH_COUNTS_CHANGED');
+await writeFile(`${root}/qa-progress.json`,JSON.stringify(qa,null,2)+'\n');
+const oldTiming=await readFile(`${root}/timing-runs.jsonl`,'utf8');
+const timings=[...proof39.profileControls,...proof39.stateControls].filter((c:{elapsedMs:number|null})=>c.elapsedMs!==null).map((c:{observedAt:string;elapsedMs:number;label:string;canvas?:number})=>({id:`live39-${c.observedAt}-${c.canvas??'profile'}-${c.label}`,rank:39,step:`control-${c.canvas??'profile'}-${c.label}`,observedAt:c.observedAt,elapsedMs:c.elapsedMs,kind:'browser-operation-wall-not-agent-net',agentNetMs:null}));
+timings.push(...[...proof40.introChecks,...proof40.anecdoteChecks].map((c:{observedAt:string;elapsedMs:number;label:string})=>({id:`live40-${c.observedAt}-${c.label}`,rank:40,step:`tab-${c.label}`,observedAt:c.observedAt,elapsedMs:c.elapsedMs,kind:'browser-operation-wall-not-agent-net',agentNetMs:null})));
+timings.push(...[...proof33.phoneTabs,...proof33.phoneFriends,...proof33.states].map((c:{observedAt:string;elapsedMs:number;label?:string;index?:number})=>({id:`live33-${c.observedAt}-${c.label??c.index}`,rank:33,step:`control-${c.label??c.index}`,observedAt:c.observedAt,elapsedMs:c.elapsedMs,kind:'browser-operation-wall-not-agent-net',agentNetMs:null})));
+const fresh=timings.filter(t=>!oldTiming.includes(t.id));if(fresh.length)await appendFile(`${root}/timing-runs.jsonl`,fresh.map(t=>JSON.stringify(t)).join('\n')+'\n');
+console.log(JSON.stringify({rank39ControlsRecorded:17,imported:28,notImportedHolds:2,additionalImportedHold:1,fullFidelityAccepted:0,built:false,deployed:false}));

@@ -1,0 +1,14 @@
+/** Local-only ordinary UI fixture: exercise HTTP fallback even on secure localhost. */
+import {readFile} from 'node:fs/promises';
+const source=await readFile('src/lib/util/clipboard.ts','utf8');
+const code=new Bun.Transpiler({loader:'ts'}).transformSync(source.replace('export async function copyTextToClipboard','async function copyTextToClipboard').replace('window.isSecureContext','false'));
+const child=`<!doctype html><html><body><p>Opaque iframe copy gesture</p><button id="child-copy">Copy child fixture</button><script>document.getElementById('child-copy').addEventListener('click',()=>parent.postMessage({type:'qa-copy',text:'QA_CHILD_PUBLIC_TEXT'},'*'));</script></body></html>`;
+const html=`<!doctype html><html translate="no"><head><meta charset="utf-8"><meta name="google" content="notranslate"><title>Legacy clipboard focus QA — no account or model</title></head><body><h1>Legacy clipboard focus QA</h1><p>This local fixture forces only the existing legacy path. No source site, account, model or private data.</p><button id="parent-copy">Copy parent fixture</button><button id="modern-copy">Modern copy positive control</button><div id="shadow-host"></div><p id="status" role="status">Ready</p><label>Paste result <textarea id="paste-result"></textarea></label><script>${code}
+const host=document.getElementById('shadow-host'),shadow=host.attachShadow({mode:'open'}),frame=document.createElement('iframe');frame.title='Opaque clipboard QA';frame.sandbox='allow-scripts';frame.srcdoc=${JSON.stringify(child).replaceAll('<','\\u003c')};shadow.append(frame);
+const status=document.getElementById('status');
+document.getElementById('parent-copy').addEventListener('click',async()=>{status.textContent='parent '+await copyTextToClipboard('QA_PARENT_PUBLIC_TEXT');});
+document.getElementById('modern-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText('QA_MODERN_PUBLIC_TEXT');status.textContent='modern copy resolved';}catch{status.textContent='modern copy rejected';}});
+window.addEventListener('message',async e=>{if(e.source!==frame.contentWindow||e.data?.type!=='qa-copy')return;status.textContent='child '+await copyTextToClipboard(e.data.text);});
+</script></body></html>`;
+const server=Bun.serve({hostname:'127.0.0.1',port:0,fetch(request){if(new URL(request.url).pathname!=='/')return new Response('Not found',{status:404});return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; script-src 'unsafe-inline'; frame-src about:; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; media-src 'none'; base-uri 'none'; form-action 'none'"}});}});
+console.log(JSON.stringify({url:`http://127.0.0.1:${server.port}/`,sourceSha256:new Bun.CryptoHasher('sha256').update(source).digest('hex'),scope:'Local forced-legacy clipboard focus QA only',externalNetwork:false}));

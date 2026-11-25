@@ -1,0 +1,15 @@
+/** Static public capsule shell/styles; native bounded search replaces parent scanning. */
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {JSDOM} from 'jsdom';
+import {nativeImageSidebarEnvelope,extractNativeImageSidebars,type NativeImageSidebar} from '../src/lib/opening/native-image-sidebar';
+const tick=performance.now(),root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',out=root+'/rule-repairs/22/native-capsule';
+const evidence=JSON.parse(await readFile(root+'/final-acceptance/22/source-public-component-inventory.json','utf8')),dom=new JSDOM(evidence.roots[0].frames[1].html),payload=dom.window.document.querySelector<HTMLTemplateElement>('#cen-nav-capsule-core-v1')?.content;
+if(!payload)throw Error('KNOWN_PUBLIC_CAPSULE_REQUIRED');const hub=payload.querySelector('#cen_nav_capsule_hub'),panel=payload.querySelector('#cen_NAV_Search_Panel');if(!hub||!panel||hub.querySelectorAll('button').length!==3||panel.querySelectorAll('button').length!==3)throw Error('PUBLIC_CAPSULE_CONTROLS_REQUIRED');
+let css=payload.querySelector('style')?.textContent??'',n=0;for(const owner of [hub,panel])for(const el of [owner,...owner.querySelectorAll('[style]')]){const style=el.getAttribute('style');if(!style)continue;const cls=`nj_capsule22_source_${n++}`;el.classList.add(cls);el.removeAttribute('style');css+=`\n.${cls}{${style}}`;}
+const quick=JSON.parse(await readFile(root+'/rule-repairs/22/native-quick-symbols/sidebar-spec.json','utf8')) as NativeImageSidebar;
+const spec:NativeImageSidebar={...quick,shellHtml:'<div class="native-page-controls">'+hub.outerHTML+panel.outerHTML+'</div>',css,pageControls:{...quick.pageControls!,navigation:'capsule'}};
+const envelope=nativeImageSidebarEnvelope(spec);if(extractNativeImageSidebars(envelope).sidebars.length!==1)throw Error('CAPSULE_SCHEMA_FAILED');
+const baseline=await readFile(root+'/rule-repairs/22/native-island-music/candidate-opening.txt','utf8'),old=nativeImageSidebarEnvelope(quick);if(baseline.split(old).length!==2)throw Error('EXACT_QUICK_ENVELOPE_REQUIRED');const candidate=baseline.replace(old,envelope);if(candidate.replace(envelope,old)!==baseline)throw Error('UNRELATED_BYTES_CHANGED');
+await mkdir(out,{recursive:true});await writeFile(out+'/sidebar-spec.json',JSON.stringify(spec,null,2));await writeFile(out+'/candidate-opening.txt',candidate);dom.window.close();const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+const proof={rank:22,sourceIndex:1,observedAt:new Date().toISOString(),elapsedMs:performance.now()-tick,baselineSha256:hash(baseline),candidateSha256:hash(candidate),outsideQuickEnvelopePreserved:true,publicInlineStylesConverted:n,sourceStorageRead:false,authorProgramExecuted:false,searchScope:'rendered nj_chat_messages only; opaque iframe contents excluded',ownerUiSaved:false,baselineRequiresFreshOwnerUiVerification:true,buildStarted:false,fullFidelityAccepted:false};await writeFile(out+'/proof.json',JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));

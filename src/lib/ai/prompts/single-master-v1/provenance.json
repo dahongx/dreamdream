@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "canonicalPolicyVersion": "single-master-v1",
+  "englishPolicyVersion": "single-master-en-v1",
+  "templateId": "t_74f21ea242914b7a8ddbd4b12e808ee9d74a4277e73ebeffb9104b0eddef77f4",
+  "sourceTemplateId": "t_b8f1731a638a645e1ceaa13438a8e44e4a4aa5fad2a5b30933639062decb6bb2",
+  "selectionRule": "latest version used by at least 100 prompts",
+  "sourceArtifactPath": "prompt-blocks-single-template/master_template.json",
+  "templateSha256": "a507d70c79646760bf01956c2ecd78d8eea461f46665526d31ddf6311c3652a8",
+  "bundleSha256": "8881820e80f001483acda016dc44626199b6e9154b13a37e06b4254c1c00d7c5",
+  "renderedSourceSha256": "32178cb72225b975820762327fe418b48edda99807cfcbf66fb157745c174531",
+  "renderedEnglishSha256": "eae37eaccd2c4c7c237292890717b79327a6597f56b60eeafa1007abf71f68d9",
+  "promptCount": 10839,
+  "sourceTemplateDeploymentCount": 738,
+  "sourceTemplateFirstSeen": "cpa-2026-07-02",
+  "sourceTemplateLastSeen": "gemini-2026-07-02",
+  "reconstructionVerified": {
+    "immediate": 10839,
+    "persisted": 10839
+  },
+  "pieceCounts": {
+    "l": 181,
+    "u": 174,
+    "s": 6
+  },
+  "unitCount": 174,
+  "characterNameSlotCount": 2,
+  "roleSections": [
+    "CharaPrompt",
+    "Greeting",
+    "OutputSetting",
+    "StyleSamples",
+    "PlotSetting",
+    "SupplementalContext"
+  ],
+  "runtimeInstructionLocales": [
+    "zh-Hans",
+    "en"
+  ]
+}

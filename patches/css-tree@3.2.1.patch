@@ -1,0 +1,70 @@
+diff --git a/package.json b/package.json
+index 637f332..adf13a7 100644
+--- a/package.json
++++ b/package.json
+@@ -23,53 +23,53 @@
+   "main": "./cjs/index.cjs",
+   "exports": {
+     ".": {
+-      "import": "./lib/index.js",
++      "import": "./cjs/index.cjs",
+       "require": "./cjs/index.cjs"
+     },
+     "./dist/*": "./dist/*.js",
+     "./package.json": "./package.json",
+     "./tokenizer": {
+-      "import": "./lib/tokenizer/index.js",
++      "import": "./cjs/tokenizer/index.cjs",
+       "require": "./cjs/tokenizer/index.cjs"
+     },
+     "./parser": {
+-      "import": "./lib/parser/index.js",
++      "import": "./cjs/parser/index.cjs",
+       "require": "./cjs/parser/index.cjs"
+     },
+     "./selector-parser": {
+-      "import": "./lib/parser/parse-selector.js",
++      "import": "./cjs/parser/parse-selector.cjs",
+       "require": "./cjs/parser/parse-selector.cjs"
+     },
+     "./generator": {
+-      "import": "./lib/generator/index.js",
++      "import": "./cjs/generator/index.cjs",
+       "require": "./cjs/generator/index.cjs"
+     },
+     "./walker": {
+-      "import": "./lib/walker/index.js",
++      "import": "./cjs/walker/index.cjs",
+       "require": "./cjs/walker/index.cjs"
+     },
+     "./convertor": {
+-      "import": "./lib/convertor/index.js",
++      "import": "./cjs/convertor/index.cjs",
+       "require": "./cjs/convertor/index.cjs"
+     },
+     "./lexer": {
+-      "import": "./lib/lexer/index.js",
++      "import": "./cjs/lexer/index.cjs",
+       "require": "./cjs/lexer/index.cjs"
+     },
+     "./definition-syntax": {
+-      "import": "./lib/definition-syntax/index.js",
++      "import": "./cjs/definition-syntax/index.cjs",
+       "require": "./cjs/definition-syntax/index.cjs"
+     },
+     "./definition-syntax-data": {
+-      "import": "./lib/data.js",
++      "import": "./cjs/data.cjs",
+       "require": "./cjs/data.cjs"
+     },
+     "./definition-syntax-data-patch": {
+-      "import": "./lib/data-patch.js",
++      "import": "./cjs/data-patch.cjs",
+       "require": "./cjs/data-patch.cjs"
+     },
+     "./utils": {
+-      "import": "./lib/utils/index.js",
++      "import": "./cjs/utils/index.cjs",
+       "require": "./cjs/utils/index.cjs"
+     }
+   },

@@ -1,0 +1,43 @@
+# Pre-commit guard for Dearm.
+#
+# Three checks, all parallel:
+#   1. typecheck — full TS check (fast on cached builds)
+#   2. lint      — Biome on staged files only (scoped to keep it tight)
+#   3. test      — bun test against the whole suite
+#
+# If any of these fails, the commit is blocked. Override with --no-verify
+# only when shipping a hotfix that the suite can't accommodate; never
+# in normal flow.
+#
+# Install once after `bun install`:
+#   bunx lefthook install
+#
+# (Lefthook ≥ 1.6 wires this via its own `prepare` script on bun install;
+# the explicit `lefthook install` is a safety net for cold checkouts.)
+#
+# Notes:
+#   - Every `run:` prefixes PATH with $HOME/.bun/bin because git hooks launch
+#     a non-login non-interactive sh that doesn't source .bashrc/.zshrc, so a
+#     user's bun on the default install path isn't found otherwise. brew users
+#     already have bun in PATH; the prefix is harmless for them.
+#   - Lint uses `bunx biome` not `bun run biome` because bun 1.3's `bun run X`
+#     resolves X as a file first (and finds biome.json), shadowing the npm
+#     script. `bunx` is the unambiguous package runner.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: typecheck
+      glob: "*.{ts,tsx}"
+      run: PATH="$HOME/.bun/bin:$PATH" bun run typecheck
+
+    - name: lint
+      glob: "*.{ts,tsx,js,jsx,json,css}"
+      run: PATH="$HOME/.bun/bin:$PATH" bunx biome check {staged_files}
+
+    - name: test
+      glob: "*.{ts,tsx}"
+      # scope 到 src/ —— kirei-beauty-shop 是独立 Cloudflare Worker 项目，
+      # 其 tests/rendered-html.test.mjs 依赖 dist/server/index.js（需要
+      # 单独 build），不该跟 yearn-chat 的 test 混跑
+      run: PATH="$HOME/.bun/bin:$PATH" bun test src/

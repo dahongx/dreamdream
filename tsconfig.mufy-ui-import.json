@@ -1,0 +1,6 @@
+{
+  "extends":"./tsconfig.json",
+  "compilerOptions":{"incremental":false,"plugins":[],"skipLibCheck":true},
+  "include":["next-env.d.ts","src/lib/import/external-card.ts","src/lib/characters/import-actions.ts","src/lib/import/mufy-migration.ts"],
+  "exclude":["node_modules"]
+}

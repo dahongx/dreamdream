@@ -1,0 +1,41 @@
+/** Known public profile only; parse static literals, never execute author JS. */
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {JSDOM} from 'jsdom';
+import ts from 'typescript';
+import {publicVariableDeclaration} from '../src/lib/import/mufy-public-prefix-extractor';
+import {normalizePublicFrameReplay} from '../src/lib/import/mufy-public-frame-replay';
+import {fullscreenStoryEnvelope,parseFullscreenStory,type FullscreenStory} from '../src/lib/opening/fullscreen-story';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',out=root+'/rule-repairs/46/fullscreen-profile';
+const source=JSON.parse(await readFile(root+'/final-acceptance/46/source-public-component-inventory.json','utf8'));
+const receipt=JSON.parse(await readFile(root+'/normal-ui-import-receipts.json','utf8')).rows.find((r:{rank:number})=>r.rank===46);
+if(source.url!==receipt.sourceUrl||!source.roleNamePresent)throw Error('PUBLIC_SOURCE_IDENTITY_REQUIRED');
+const original=source.roots[0].frames[1].html as string;
+const baseline=await readFile(root+'/rule-repairs/46/native-cloud-music/candidate-opening.txt','utf8');
+const prior=JSON.parse(await readFile(root+'/rule-repairs/46/native-cloud-music/candidate-proof.json','utf8'));
+const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+if(hash(baseline)!==prior.candidateSha256)throw Error('CURRENT_PENDING_CHAIN_REQUIRED');
+const anchorAt=baseline.indexOf('id="Mm_anchor_v9"');
+const start=baseline.lastIndexOf('```html',anchorAt),end=baseline.indexOf('```',start+7);
+if(anchorAt<0||start<0||end<anchorAt||baseline.includes('"kind":"censy-profile-v9"'))throw Error('UNIQUE_ORIGINAL_FRAME_BOUNDARY_REQUIRED');
+const raw=baseline.slice(start+7,end);
+function capture(html:string){
+ const dom=new JSDOM(html),anchor=dom.window.document.querySelector('#Mm_anchor_v9');
+ if(anchor?.getAttribute('onclick')!=='Sx_init_v9()')throw Error('EXACT_ORIGINAL_TRIGGER_REQUIRED');
+ const code=Array.from(dom.window.document.querySelectorAll('script')).map(e=>e.textContent??'').join('\n');
+ const init=publicVariableDeclaration(code,'cold_tank_str_v9').initializer;
+ if(!init||(!ts.isStringLiteral(init)&&!ts.isNoSubstitutionTemplateLiteral(init)))throw Error('STATIC_PUBLIC_PROFILE_TEMPLATE_REQUIRED');
+ const css=Array.from(dom.window.document.querySelectorAll('style')).map(e=>e.textContent??'').filter(s=>s.includes('.cenConfig_anchor_v9')).join('\n');
+ const result={template:init.text,css,anchor:anchor.outerHTML,children:anchor.innerHTML};dom.window.close();return result;
+}
+const observed=capture(original),current=capture(raw);
+if(observed.template!==current.template||observed.css!==current.css||observed.anchor!==current.anchor)throw Error('OWNER_PROFILE_DIFFERS_FROM_PUBLIC_SOURCE_REVIEW_REQUIRED');
+const inherited=JSON.parse(await readFile(root+'/final-acceptance/46/fullscreen-profile-inheritance-differences-20261031.json','utf8')).source.rows.find((r:{selector:string})=>r.selector==='.cenConfig_win_v9');
+if(!inherited||inherited.boxSizing!=='border-box'||inherited.size!=='16px'||inherited.lineHeight!=='28.8px')throw Error('MEASURED_PUBLIC_PARENT_INHERITANCE_REQUIRED');
+const spec:FullscreenStory={version:1,kind:'censy-profile-v9',triggerCss:current.css,triggerMarkup:current.children,triggerLabel:'江之余 · 人物档案',document:normalizePublicFrameReplay(raw).html,inheritedFont:inherited.font,inheritedColor:inherited.color,inheritedLineHeight:1.8};
+const envelope=fullscreenStoryEnvelope(spec);if(!parseFullscreenStory(envelope))throw Error('KNOWN_PROFILE_SCHEMA_REQUIRED');
+const candidate=baseline.slice(0,start+7)+'\n'+envelope+'\n'+baseline.slice(end);
+if(candidate.replace('\n'+envelope+'\n',raw)!==baseline)throw Error('UNRELATED_OWNER_BYTES_CHANGED');
+await mkdir(out,{recursive:true});await writeFile(out+'/profile-spec.json',JSON.stringify(spec,null,2));await writeFile(out+'/candidate-opening.txt',candidate);
+const proof={rank:46,sourceIndex:1,observedAt:new Date().toISOString(),sourceUrl:source.url,baselineSha256:hash(baseline),candidateSha256:hash(candidate),allOtherOwnerBytesPreserved:true,ownerPublicTemplateAndTriggerExact:true,originalProgramPreserved:true,realParentAccess:false,hostRpcPort:false,opaqueFullViewport:true,ownerUiSaved:false,deployed:false,fullFidelityAccepted:false};
+await writeFile(out+'/candidate-proof.json',JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));

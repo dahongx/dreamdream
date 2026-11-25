@@ -1,0 +1,50 @@
+/** Local targeted verification, separately timed; never an inferred Agent total. */
+import {appendFile,mkdir,writeFile} from 'node:fs/promises';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028';
+const files=['src/lib/import/mufy-source-rule-envelope.test.ts','src/lib/import/__tests__/mufy-public-semantic-skin.test.ts','src/lib/import/__tests__/mufy-source-rule-transfer.test.ts','src/lib/import/__tests__/mufy-public-frame-tokens.test.ts','src/lib/import/__tests__/mufy-source-rule-requirements.test.ts','src/lib/import/__tests__/mufy-saved-reply-dom-audit.test.ts','src/lib/import/__tests__/mufy-status-indent.test.ts','src/lib/import/__tests__/mufy-reply-pet.test.ts','src/lib/__tests__/mufy-sidebar-owner.test.ts','src/components/chat/__tests__/mufy-reply-pet-lifecycle.test.tsx'];
+async function run(args:string[]){const startedAt=new Date().toISOString(),tick=performance.now(),p=Bun.spawn(args,{stdout:'pipe',stderr:'pipe'});const [stdout,stderr,exitCode]=await Promise.all([new Response(p.stdout).text(),new Response(p.stderr).text(),p.exited]);return{startedAt,finishedAt:new Date().toISOString(),elapsedMs:performance.now()-tick,exitCode,output:stdout+stderr};}
+files.push('src/lib/__tests__/opening-frame-height.test.ts','src/lib/__tests__/segments-iframe.test.ts');
+files.push('src/lib/import/__tests__/mufy-composer-companion.test.ts','src/components/chat/__tests__/mufy-composer-companion-lifecycle.test.tsx');
+files.push('src/lib/__tests__/opening-content.test.ts');
+files.push('src/components/chat/__tests__/native-image-sidebar.test.tsx','src/lib/import/mufy-rendered-opening-exporter.test.ts');
+files.push('src/lib/__tests__/native-image-sidebar.test.ts','src/components/chat/__tests__/native-image-sidebar-lifecycle.test.tsx');
+files.push('src/lib/import/__tests__/mufy-public-frame-replay.test.ts');
+files.push('src/components/chat/__tests__/opening-slot-composer.test.tsx');
+files.push('src/lib/import/__tests__/mufy-public-component-coverage.test.ts');
+files.push('src/lib/__tests__/mufy-component-presentation.test.ts');
+files.push('src/lib/__tests__/fullscreen-story.test.ts','src/components/chat/__tests__/fullscreen-story-lifecycle.test.tsx');
+files.push('src/lib/import/__tests__/mufy-speech-decoration.test.ts');
+files.push('src/lib/import/__tests__/mufy-avatar-draft-copy.test.ts');
+files.push('src/components/chat/__tests__/ghost-instructions-lifecycle.test.tsx');
+files.push('src/lib/__tests__/composer-prefix.test.ts','src/components/chat/__tests__/mufy-prefix-panel.test.tsx');
+files.push('src/lib/import/__tests__/mufy-public-prefix-extractor.test.ts');
+files.push('src/components/chat/__tests__/mufy-cloud-music.test.tsx');
+files.push('src/components/chat/__tests__/mufy-island-music.test.tsx');
+files.push('src/components/chat/__tests__/mufy-command-drawer.test.tsx');
+files.push('src/components/chat/__tests__/mufy-source-controls.test.tsx');
+files.push('src/components/chat/__tests__/mufy-capsule-navigation.test.tsx');
+files.push('src/components/chat/__tests__/mufy-halo-toolkit.test.tsx','src/components/chat/__tests__/mufy-halo-commands.test.ts','src/components/chat/__tests__/mufy-halo-drawing.test.ts');
+files.push('src/lib/import/__tests__/mufy-candidate-baseline.test.ts');
+files.push('src/lib/__tests__/chat-skin-isolation.test.ts');
+files.push('src/lib/__tests__/mufy-oc-copy.test.ts');
+files.push('src/components/chat/__tests__/oc-profile-copy-lifecycle.test.tsx');
+files.push('src/components/chat/__tests__/mufy-image-island.test.tsx');
+files.push('src/lib/__tests__/mufy-public-map.test.ts','src/components/chat/__tests__/mufy-public-map.test.tsx');
+// Existing lifecycle fixtures mock RegexIframe process-wide. Exercise the real
+// frame boundary in a separate process, so those mocks cannot hide a regression.
+const realFrameTests=['src/components/chat/__tests__/native-image-sidebar.test.tsx','src/components/chat/__tests__/native-image-sidebar-lifecycle.test.tsx','src/components/chat/__tests__/fullscreen-story-lifecycle.test.tsx','src/components/chat/__tests__/ghost-instructions-lifecycle.test.tsx'];
+const draftCallbackTests=['src/components/chat/__tests__/opening-slot-composer.test.tsx','src/components/chat/__tests__/oc-profile-copy-lifecycle.test.tsx','src/components/chat/__tests__/mufy-public-map.test.tsx'];
+const testRuns=[await run(['bun','test',...files.filter(file=>!realFrameTests.includes(file)&&!draftCallbackTests.includes(file))]),await run(['bun','test',...realFrameTests]),...await Promise.all(draftCallbackTests.map(file=>run(['bun','test',file])))];
+const tests={startedAt:testRuns[0].startedAt,finishedAt:testRuns[testRuns.length-1].finishedAt,elapsedMs:testRuns.reduce((sum,run)=>sum+run.elapsedMs,0),exitCode:testRuns.some(run=>run.exitCode!==0)?1:0,output:testRuns.map(run=>run.output).join('\n')};
+const typecheck=await run(['bun','node_modules/typescript/bin/tsc','--noEmit','-p','tsconfig.mufy-prefix.json']);
+await writeFile(root+'/latest-validation.log',tests.output+'\nTYPECHECK\n'+typecheck.output);
+const total=(re:RegExp)=>{const matches=[...tests.output.matchAll(re)];return matches.length===testRuns.length?matches.reduce((sum,match)=>sum+Number(match[1]),0):NaN;};
+const passed=total(/^[ \t]*(\d+) pass[ \t]*\r?$/gm),failed=total(/^[ \t]*(\d+) fail[ \t]*\r?$/gm),assertions=total(/^[ \t]*(\d+) expect\(\) calls[ \t]*\r?$/gm);
+if(!Number.isSafeInteger(passed)||!Number.isSafeInteger(failed)||!Number.isSafeInteger(assertions))throw Error('MISSING_TEST_TOTALS');
+const result={observedAt:new Date().toISOString(),passed,failed,assertions,files,tests:{startedAt:tests.startedAt,finishedAt:tests.finishedAt,elapsedMs:tests.elapsedMs,exitCode:tests.exitCode},typecheck:{startedAt:typecheck.startedAt,finishedAt:typecheck.finishedAt,elapsedMs:typecheck.elapsedMs,exitCode:typecheck.exitCode,scope:'targeted source transfer plus reply viewport components'},timingKind:'local-verification-process-wall-not-inferred-agent-net',agentNetMs:null,fullFidelityAccepted:false};
+await writeFile(root+'/latest-validation.json',JSON.stringify(result,null,2));
+const runId=result.observedAt.replace(/[:.]/g,'-');
+await mkdir(root+'/validation-runs',{recursive:true});
+await writeFile(root+'/validation-runs/'+runId+'.log',tests.output+'\nTYPECHECK\n'+typecheck.output);
+await appendFile(root+'/timing-runs.jsonl',JSON.stringify({id:'local-validation-'+result.observedAt,step:'local-validation',observedAt:result.observedAt,tests:result.tests,typecheck:result.typecheck,passed,failed,assertions,kind:result.timingKind,agentNetMs:null,deployed:false})+'\n');
+console.log(JSON.stringify(result));if(tests.exitCode||typecheck.exitCode)process.exitCode=1;

@@ -1,0 +1,131 @@
+-- ============================================================================
+-- RLS（行级安全）—— 备用迁移，默认不启用。
+-- ============================================================================
+--
+-- 状态: 本文件放在 drizzle/optional/ 下，db-migrate runner 只扫 drizzle/*.sql，
+-- 不会自动执行它。裸 IP / 纯后端阶段 **无需** RLS:
+--   - kong.yml 已删 /rest/v1 路由 → 公网无 PostgREST Data API 入口；
+--   - 后端以 postgres 超级用户直连，本就绕过 RLS。
+-- 因此 RLS 当前对安全无增量。
+--
+-- 何时启用本文件:
+--   未来若 (a) 开放前端直连 Supabase Data API，或 (b) 在 kong 放开 /rest/v1，
+--   则必须先 enable RLS，否则任何人持公开的 publishable key 即可越权读写整库。
+--   启用方式: 把本文件复制/移动到 drizzle/0013_rls.sql 再 `bun run db:migrate`，
+--   或手动 psql 执行。
+--
+-- ⚠️ 未完成 / 需人工补全（启用前必须做）:
+--   1. **公开读边界**: 探索页要能读 public characters / 其 comments / public packs。
+--      下面 SELECT 策略目前只给了 owner-only；启用前必须为可公开的表补
+--      `visibility='public'` / `is_public=true` 的额外 SELECT 策略，否则游客页空白。
+--   2. **授权字段来源**: auth.uid() 取自 JWT，可信；不要用 user_metadata 做授权判断。
+--   3. **service_role 绕过**: 后端用 service key 时自动绕过 RLS（policy 不影响后端）。
+--   4. 逐表用真实游客 / owner / 他人三视角测，确认无 IDOR、无误锁。
+--
+-- 决策与上溯路径详见 docs/handover/supabase-cloud-migration.md §2.1。
+-- ============================================================================
+
+-- ---- 直接归属表（auth.uid() = 某个 user 列）--------------------------------
+
+ALTER TABLE public.characters ENABLE ROW LEVEL SECURITY;
+CREATE POLICY characters_owner_all ON public.characters FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = owner_id) WITH CHECK ((SELECT auth.uid()) = owner_id);
+-- TODO(公开读): CREATE POLICY characters_public_select ... USING (visibility = 'public');
+--> statement-breakpoint
+
+ALTER TABLE public.chat_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY chat_sessions_owner_all ON public.chat_sessions FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
+--> statement-breakpoint
+
+ALTER TABLE public.user_masks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY user_masks_owner_all ON public.user_masks FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
+--> statement-breakpoint
+
+ALTER TABLE public.beautification_packs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY packs_owner_all ON public.beautification_packs FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = owner_user_id) WITH CHECK ((SELECT auth.uid()) = owner_user_id);
+-- TODO(公开读): CREATE POLICY packs_public_select ... USING (is_public = true);
+--> statement-breakpoint
+
+ALTER TABLE public.studio_sessions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY studio_sessions_owner_all ON public.studio_sessions FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
+--> statement-breakpoint
+
+ALTER TABLE public.user_regex_preferences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY user_regex_prefs_owner_all ON public.user_regex_preferences FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
+--> statement-breakpoint
+
+ALTER TABLE public.character_comments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY comments_author_write ON public.character_comments FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = author_id) WITH CHECK ((SELECT auth.uid()) = author_id);
+-- TODO(公开读): 评论通常应可被任何人读 → 补 FOR SELECT USING (true) 或限 public 角色页。
+--> statement-breakpoint
+
+ALTER TABLE public.character_comment_likes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY comment_likes_owner_all ON public.character_comment_likes FOR ALL TO authenticated
+  USING ((SELECT auth.uid()) = user_id) WITH CHECK ((SELECT auth.uid()) = user_id);
+--> statement-breakpoint
+
+-- ---- 间接归属表（EXISTS 上溯到拥有者）-------------------------------------
+
+-- messages → chat_sessions.user_id
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY messages_via_session ON public.messages FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.chat_sessions s
+    WHERE s.id = messages.session_id AND s.user_id = (SELECT auth.uid())))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.chat_sessions s
+    WHERE s.id = messages.session_id AND s.user_id = (SELECT auth.uid())));
+--> statement-breakpoint
+
+-- regex_rules → beautification_packs.owner_user_id
+ALTER TABLE public.regex_rules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY regex_rules_via_pack ON public.regex_rules FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.beautification_packs p
+    WHERE p.id = regex_rules.pack_id AND p.owner_user_id = (SELECT auth.uid())))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.beautification_packs p
+    WHERE p.id = regex_rules.pack_id AND p.owner_user_id = (SELECT auth.uid())));
+-- TODO(公开读): public pack 的 rules 在订阅/预览时需可读 → 补 public_select 上溯 is_public。
+--> statement-breakpoint
+
+-- opening_components → beautification_packs.owner_user_id
+ALTER TABLE public.opening_components ENABLE ROW LEVEL SECURITY;
+CREATE POLICY opening_components_via_pack ON public.opening_components FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.beautification_packs p
+    WHERE p.id = opening_components.pack_id AND p.owner_user_id = (SELECT auth.uid())))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.beautification_packs p
+    WHERE p.id = opening_components.pack_id AND p.owner_user_id = (SELECT auth.uid())));
+--> statement-breakpoint
+
+-- character_pack_subscriptions → characters.owner_id（订阅归角色 owner 管）
+ALTER TABLE public.character_pack_subscriptions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY char_pack_subs_via_character ON public.character_pack_subscriptions FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.characters c
+    WHERE c.id = character_pack_subscriptions.character_id AND c.owner_id = (SELECT auth.uid())))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.characters c
+    WHERE c.id = character_pack_subscriptions.character_id AND c.owner_id = (SELECT auth.uid())));
+--> statement-breakpoint
+
+-- subscription_rule_overrides → character_pack_subscriptions → characters.owner_id
+ALTER TABLE public.subscription_rule_overrides ENABLE ROW LEVEL SECURITY;
+CREATE POLICY sub_rule_overrides_via_character ON public.subscription_rule_overrides FOR ALL TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.character_pack_subscriptions sub
+    JOIN public.characters c ON c.id = sub.character_id
+    WHERE sub.id = subscription_rule_overrides.subscription_id AND c.owner_id = (SELECT auth.uid())))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM public.character_pack_subscriptions sub
+    JOIN public.characters c ON c.id = sub.character_id
+    WHERE sub.id = subscription_rule_overrides.subscription_id AND c.owner_id = (SELECT auth.uid())));
+--> statement-breakpoint
+
+-- pack_assistant_messages → studio_sessions.user_id
+ALTER TABLE public.pack_assistant_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY pack_assistant_msgs_via_session ON public.pack_assistant_messages FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.studio_sessions s
+    WHERE s.id = pack_assistant_messages.session_id AND s.user_id = (SELECT auth.uid())))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.studio_sessions s
+    WHERE s.id = pack_assistant_messages.session_id AND s.user_id = (SELECT auth.uid())));

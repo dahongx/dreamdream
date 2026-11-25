@@ -1,0 +1,5 @@
+/** Public document lifecycle identifier, not authentication, secrets or a permission. */
+export function yanjDocumentVersion(source:string){let a=0x811c9dc5,b=0x9e3779b9;for(let i=0;i<source.length;i++){const n=source.charCodeAt(i);a=Math.imul(a^n,0x01000193);b=Math.imul(b^n,0x85ebca6b)}return(a>>>0).toString(16).padStart(8,'0')+(b>>>0).toString(16).padStart(8,'0')}
+export function validYanjToken(token:unknown):token is string{return typeof token==='string'&&/^yanj1:[A-Za-z0-9:_-]{1,96}:[a-f\d]{16}:(?:inline|modal-[0-2])$/.test(token)&&token.length<=145}
+export function yanjLifecycleToken(reactId:string,source:string,channel:'inline'|'modal-0'|'modal-1'|'modal-2'){if(!/^[A-Za-z0-9:_-]{1,96}$/.test(reactId))throw Error('INVALID_YANJ_INSTANCE');const token=`yanj1:${reactId}:${yanjDocumentVersion(source)}:${channel}`;if(!validYanjToken(token))throw Error('INVALID_YANJ_TOKEN');return token}
+export function assertYanjToken(token:string){if(!validYanjToken(token))throw Error('INVALID_YANJ_TOKEN')}

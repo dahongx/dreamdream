@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false, "plugins": [], "skipLibCheck": true },
+  "include": ["next-env.d.ts", "src/lib/regex/iframe-bridge.ts", "src/components/chat/MessageRenderer.tsx", "src/components/chat/messages/ArtifactIframe.tsx"],
+  "exclude": ["node_modules"]
+}

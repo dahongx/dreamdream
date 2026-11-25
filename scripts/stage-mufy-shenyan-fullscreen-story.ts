@@ -1,0 +1,28 @@
+/** Preserve current owner content and bind the missing public frame to an isolated full viewport. */
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {JSDOM} from 'jsdom';
+import {normalizePublicFrameReplay} from '../src/lib/import/mufy-public-frame-replay';
+import {fullscreenStoryEnvelope,parseFullscreenStory,type FullscreenStory} from '../src/lib/opening/fullscreen-story';
+import {routeOpeningContentSplit} from '../src/lib/opening/content';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',dir=root+'/final-acceptance/43',output=root+'/rule-repairs/43/fullscreen-story';
+const source=JSON.parse(await readFile(dir+'/source-public-component-inventory.json','utf8'));
+const receipts=JSON.parse(await readFile(root+'/normal-ui-import-receipts.json','utf8')),receipt=receipts.rows.find((r:{rank:number})=>r.rank===43);
+if(!receipt||source.url!==receipt.sourceUrl||!source.roleNamePresent)throw Error('SOURCE_IDENTITY_MISMATCH');
+const frame=source.roots[0].frames[6];if(frame.collapsedDrawer||frame.height<=2||frame.width<=2)throw Error('OBSERVED_PUBLIC_TRIGGER_REQUIRED');
+const dom=new JSDOM(frame.html),anchor=dom.window.document.querySelector('.censy-anchor-v19');
+if(anchor?.getAttribute('onclick')!=='window.parent.censyStartV19()')throw Error('SOURCE_TRIGGER_MISMATCH');
+const triggerCss=[...dom.window.document.querySelectorAll('style')].map(s=>s.textContent??'').filter(s=>s.includes('.censy-anchor-v19')).join('\n');dom.window.close();
+const publicDocument=normalizePublicFrameReplay(frame.html).html;
+const spec:FullscreenStory={version:1,kind:'censy-v19',triggerCss,document:publicDocument};
+const envelope=fullscreenStoryEnvelope(spec);if(!parseFullscreenStory(envelope))throw Error('INVALID_ISOLATED_STORY');
+const baseline=await readFile(dir+'/owner-opening-baseline.txt','utf8');
+if(baseline.includes('censyStartV19')||baseline.includes('data-nj-fullscreen-story-v1'))throw Error('STORY_ALREADY_PRESENT_REVIEW_REQUIRED');
+if(baseline.includes('window.parent.cv7ToggleAuthor'))throw Error('LATEST_AUTHOR_FOLD_REPAIR_REQUIRED');
+const candidate=baseline+'\n<div data-nj-restored-source-rank="43" data-source-frame="6">\n```html\n'+envelope+'\n```\n</div>';
+const route=routeOpeningContentSplit(candidate,'story-check'),docs=route.inline?.kind==='iframe-multi'?route.inline.srcdocs:route.inline?.kind==='iframe'?[route.inline.srcdoc]:[];
+if(docs.filter(d=>parseFullscreenStory(d)).length!==1)throw Error('STORY_ROUTING_DUPLICATED_OR_MISSING');
+await mkdir(output,{recursive:true});const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+await writeFile(output+'/story-spec.json',JSON.stringify(spec,null,2));await writeFile(output+'/candidate-opening.txt',candidate);
+const proof={observedAt:new Date().toISOString(),rank:43,sourceUrl:source.url,sourceFrameIndex:6,sourceObservedAt:source.observedAt,baselineSha256:hash(baseline),candidateSha256:hash(candidate),preservedOriginalCharacters:baseline.length,allOriginalBytesPreserved:candidate.startsWith(baseline),programAndImagesPreserved:true,sourceOrder:'source 6 after existing source 5',opaqueFullViewport:true,hostRpcPort:false,realParentAccess:false,ownerUiSaved:false,deployed:false,testBuildStarted:false,fullFidelityAccepted:false};
+await writeFile(output+'/candidate-proof.json',JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));

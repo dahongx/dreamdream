@@ -1,0 +1,7 @@
+2026-10-27 用户决定：模型清理暂缓，不隐藏、不删除、不部署。
+测试服 19 个可选模型已逐一通过实际 provider 配置做短消息流式测试。
+7 个成功：Opus 4.7、Sonnet 4.6、Gemini 4 Argon、3 Flash、3.1 Flash、3.8 Flash、3.8 Flash High。
+11 个 Gemini 旧档位返回 503 无可用通道；GPT-5.6-sol 返回 401 Invalid token。
+证据：tmp/test-visible-models-20261027-results.jsonl。
+后续建议（尚未实施）：仅隐藏失败型号，保留历史聊天、账单与配置；GPT 先排查凭据。
+用户当前优先事项：重新调研 Rubii 的续写与玩家回复建议功能。

@@ -1,0 +1,23 @@
+/** Reconcile measured local UI evidence; never promotes it to TEST acceptance. */
+import {readFile,writeFile,appendFile} from 'node:fs/promises';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028';
+const read=async(path:string)=>JSON.parse(await readFile(`${root}/${path}`,'utf8'));
+const ui=await read('final-acceptance/43/local-fullscreen-story-ui-check.json');
+const validation=await read('latest-validation.json');
+if(ui.localMobile.naturalExit.frames!==0||ui.localMobile.lastPanel.opacity!=='1'||!ui.localMobile.escapeViaFocusedFrameClosed||!ui.localMobile.input.focused||validation.failed||validation.typecheck.exitCode)throw Error('LOCAL_STORY_CHECK_INCOMPLETE');
+const qa=await read('qa-progress.json'),row=qa.rows.find((r:{rank:number})=>r.rank===43);
+if(!row||qa.rows.length!==28)throw Error('BATCH_IDENTITY_MISMATCH');
+row.fullscreenStoryCandidate={observedAt:ui.observedAt,sourceFrameIndex:6,evidence:'final-acceptance/43/local-fullscreen-story-ui-check.json',candidateProof:'rule-repairs/43/fullscreen-story/candidate-proof.json',desktopThreePanelsAndNaturalExit:true,mobileThreePanelsAndNaturalExit:true,reenterAndEscape:true,sandbox:'allow-scripts opaque; no host RPC',savedToTest:false,built:false,deployed:false,fullFidelityAccepted:false};
+const profile29=await read('final-acceptance/29/profile-and-music-followup.json');
+const states29=await read('final-acceptance/29/three-state-canvases-keyboard-check.json');
+if(!profile29.allTargetPanelsOpened||!profile29.allPanelTextsMatch||!states29.passed)throw Error('PROFILE_CONTROL_CHECK_INCOMPLETE');
+qa.rows.find((r:{rank:number})=>r.rank===29).targetedControlFollowup={observedAt:states29.observedAt,evidence:['final-acceptance/29/profile-and-music-followup.json','final-acceptance/29/three-state-canvases-controls-check.json','final-acceptance/29/three-state-canvases-keyboard-check.json'],fiveProfilePanelsTextMatched:true,sixStateControlsKeyboardPassed:true,musicPlaybackConfirmed:false,fullFidelityAccepted:false};
+const coverage=await read('public-component-coverage-audit.json');
+const coverage29=coverage.rows.find((r:{rank:number})=>r.rank===29);
+const qa29=qa.rows.find((r:{rank:number})=>r.rank===29);
+if(coverage29?.coverage&&qa29.publicComponentFollowup?.sourceObservedAt===coverage29.sourceObservedAt)qa29.publicComponentFollowup.explicitUiCoverage=coverage29.coverage;
+qa.observedAt=new Date().toISOString();
+if(qa.fullFidelityAccepted!==0)throw Error('DO_NOT_OVERWRITE_ACCEPTANCE');
+await writeFile(`${root}/qa-progress.json`,JSON.stringify(qa,null,2)+'\n');
+if(!(await readFile(`${root}/RUNBOOK.txt`,'utf8')).includes('2026-10-29 全屏动效续接：'))await appendFile(`${root}/RUNBOOK.txt`,'\n2026-10-29 全屏动效续接：\n43来源6缺失动效已有安全独立候选：原行内入口不移位，原三图/雪花/人物面板/延时锁程序保留，只在不透明allow-scripts视口运行，不授予真实父文档或RPC。实际来源桌面三幕及自然退出、本地桌面与390×844手机三幕/自然退出/重开/Escape/退出后输入均查；末幕opacity=1的真实手机截图已保存。浏览器活动态父级重绘未单独操作，React生命周期测试已覆盖，不混称浏览器通过。来源手机像素对照未做。候选未写TEST，整卡仍未验收。\n最新定向回归200项/857断言、类型检查退出0。集中补丁扩为12文件（6修改/6新增），实际TEST精确基线只读核对、本地应用及12项哈希通过；Bili独立same-origin改动仍排除。无TEST构建/发布，无数据库或正式服操作。\n');
+console.log(JSON.stringify({rank:43,localBrowserChecksRecorded:true,fullFidelityAccepted:0,built:false,deployed:false}));

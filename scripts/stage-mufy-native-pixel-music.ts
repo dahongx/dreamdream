@@ -1,0 +1,24 @@
+/** Preserve the existing public music program but bind it back to its native drawer. */
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {normalizePublicFrameReplay} from '../src/lib/import/mufy-public-frame-replay';
+import {nativeImageSidebarEnvelope} from '../src/lib/opening/native-image-sidebar';
+import {routeOpeningContentSplit} from '../src/lib/opening/content';
+const root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',dir=`${root}/final-acceptance/34`,out=`${root}/rule-repairs/34/native-pixel-music`;
+const source=JSON.parse(await readFile(`${dir}/source-native-music-expanded.json`,'utf8'));
+const receipt=JSON.parse(await readFile(`${root}/normal-ui-import-receipts.json`,'utf8')).rows.find((r:{rank:number})=>r.rank===34);
+const baseline=await readFile(`${dir}/owner-opening-native-music-baseline.txt`,'utf8');
+const start=baseline.indexOf('<details class="sidebar-music-box">'),fence=baseline.indexOf('```html',start),closeFence=baseline.indexOf('```',fence+7);
+const tail=/^\s*(?:<\/div>\s*)*<\/details>/.exec(baseline.slice(closeFence+3));
+if(source.sourceUrl!==receipt.sourceUrl||!source.open||source.styles.length!==1||start!==0||fence<0||closeFence<0||!tail)throw Error('NATIVE_PIXEL_DRAWER_BOUNDARY_UNPROVEN');
+const raw=baseline.slice(fence+7,closeFence);
+if(!raw.includes('</html>')||!['一起听歌','长安姑娘','胭脂妆'].every(t=>raw.includes(t)&&source.frameHtml.includes(t)))throw Error('PUBLIC_MUSIC_IDENTITY_MISMATCH');
+const end=closeFence+3+tail[0].length,document=normalizePublicFrameReplay(raw).html;
+const spec={version:1 as const,variant:'pixel-music' as const,shellHtml:'<details class="sidebar-music-box"><summary></summary><div class="content-fixed-area"><div data-nj-native-documents></div></div></details>',css:source.styles[0],documents:[document],framePresentation:{minHeight:100,borderRadius:12}};
+const candidate=baseline.slice(0,start)+nativeImageSidebarEnvelope(spec)+baseline.slice(end);
+const routed=routeOpeningContentSplit(candidate,'native-pixel-34');
+if(routed.floating.filter(w=>w.nativeImageSidebar?.variant==='pixel-music').length!==1||JSON.stringify(routed.inline).includes('一起听歌'))throw Error('PIXEL_MUSIC_DUPLICATE_OR_MISSING');
+await mkdir(out,{recursive:true});await writeFile(`${out}/sidebar-spec.json`,JSON.stringify(spec,null,2));await writeFile(`${out}/candidate-opening.txt`,candidate);
+const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+const proof={rank:34,observedAt:new Date().toISOString(),baselineSha256:hash(baseline),candidateSha256:hash(candidate),preservedSuffixCharacters:baseline.length-end,existingPublicProgramReused:true,sourceProgramCopiedOverOwner:false,documents:1,ownerUiSaved:false,deployed:false,fullFidelityAccepted:false};
+await writeFile(`${out}/candidate-proof.json`,JSON.stringify(proof,null,2));console.log(JSON.stringify(proof));

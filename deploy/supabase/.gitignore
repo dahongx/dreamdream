@@ -1,0 +1,4 @@
+# 运行时数据 —— 容器写入，绝不提交。
+volumes/db/data/
+volumes/storage/*
+!volumes/storage/.gitkeep

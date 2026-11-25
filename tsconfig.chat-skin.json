@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "incremental": false, "plugins": [] },
+  "include": ["next-env.d.ts", "src/components/chat/ChatRoom.tsx", "src/components/chat/OpeningSlot.tsx", "src/lib/import/mufy-migration.ts", "src/lib/__tests__/chat-skin-isolation.test.ts", "scripts/serve-chat-shell-preview.ts", "scripts/preview-chat-shell-client.tsx"],
+  "exclude": ["node_modules"]
+}

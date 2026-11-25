@@ -1,0 +1,34 @@
+/** Static public DOM and literal syntax only; no source program execution or network. */
+import {readFile,writeFile,mkdir,appendFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {JSDOM} from 'jsdom';
+import ts from 'typescript';
+import {publicVariableDeclaration} from '../src/lib/import/mufy-public-prefix-extractor';
+import {fullscreenStoryEnvelope,parseFullscreenStory,type PublicTimeline} from '../src/lib/opening/fullscreen-story';
+const tick=performance.now(),root='logs/mufy-profiles/full-20261013/next-batch-30-20261028',out=root+'/rule-repairs/41/public-timeline';
+const inventory=JSON.parse(await readFile(root+'/final-acceptance/41/source-public-component-inventory.json','utf8'));
+const live=JSON.parse(await readFile(root+'/final-acceptance/41/timeline-source-modal-20261031.json','utf8'));
+if(inventory.name!=='谢闽'||inventory.url!==live.sourceUrl||live.rows.length!==4||live.targetFrameCount!==0||live.targetRootCount!==0)throw Error('ACTUAL_MISSING_PUBLIC_TIMELINE_REQUIRED');
+const original=inventory.roots[0].frames.find((f:{index:number})=>f.index===5).html as string;
+const dom=new JSDOM(original),doc=dom.window.document,wrapper=doc.querySelector('#Z_CONFIG-xm-timeline-v10-fix');if(!wrapper)throw Error('KNOWN_TIMELINE_ROOT');
+const code=[...doc.scripts].map(e=>e.textContent??'').join('\n'),array=publicVariableDeclaration(code,'data_v10').initializer;
+if(!array||!ts.isArrayLiteralExpression(array)||array.elements.length!==4)throw Error('FOUR_LITERAL_ENTRIES_REQUIRED');
+const property=(node:ts.Expression,key:string)=>{if(!ts.isObjectLiteralExpression(node))throw Error('STATIC_OBJECT_REQUIRED');const p=node.properties.find(p=>ts.isPropertyAssignment(p)&&p.name.getText()===key);if(!p||!ts.isPropertyAssignment(p))throw Error('KNOWN_PROPERTY_REQUIRED');return p.initializer;};
+const string=(n:ts.Expression)=>{if(!ts.isStringLiteral(n))throw Error('STATIC_STRING_REQUIRED');return n.text;};
+const number=(n:ts.Expression)=>{if(!ts.isNumericLiteral(n))throw Error('STATIC_NUMBER_REQUIRED');return Number(n.text);};
+const css=[...wrapper.querySelectorAll('style')].map(e=>e.textContent??'').join('\n');wrapper.querySelectorAll('style,script').forEach(e=>e.remove());
+const nodes=wrapper.querySelector('#censy-nodes-xm-v10');if(!nodes||nodes.children.length)throw Error('INERT_EMPTY_SOURCE_NODES_REQUIRED');
+const entries=array.elements.map((entry,i)=>{
+ const label=string(property(entry,'label')),pt=property(entry,'pt'),modal=property(entry,'modal');
+ const observed=live.rows[i];if(observed.index!==i||!observed.source.text.startsWith(label+'\n'))throw Error('LIVE_MODAL_ORDER_MISMATCH');
+ const modalDom=new JSDOM(observed.source.html),overlay=modalDom.window.document.querySelector('#censy_modal_overlay_xm_v10');
+ if(!overlay||!overlay.textContent?.includes(string(property(modal,'desc')))||!overlay.textContent.includes(string(property(modal,'title'))))throw Error('OBSERVED_MODAL_TEXT_MISMATCH');
+ const node=doc.createElement('div');node.className='Tuan_node_v10 '+string(property(entry,'labelDir'));node.style.left=number(property(pt,'x'))+'px';node.style.top=number(property(pt,'y'))+'px';const span=doc.createElement('span');span.className='cenConfig_label_v10';span.textContent=label;node.append(span);nodes.append(node);
+ const result={label,modalMarkup:overlay.innerHTML};modalDom.window.close();return result;
+});
+const spec:PublicTimeline={version:1,kind:'censy-timeline-v10',document:'',triggerCss:css,triggerMarkup:wrapper.outerHTML,entries};const envelope=fullscreenStoryEnvelope(spec);if(!parseFullscreenStory(envelope))throw Error('FINITE_TIMELINE_SCHEMA_REQUIRED');
+const baseline=await readFile(root+'/rule-repairs/41/native-heart-navigation/candidate-opening.txt','utf8');if(baseline.includes('Z_CONFIG-xm-timeline-v10-fix'))throw Error('TIMELINE_ALREADY_PRESENT');
+const boundary='<div data-nj-restored-source-rank="41" data-source-frame="6">',at=baseline.indexOf(boundary);if(at<0||baseline.indexOf(boundary,at+1)>=0)throw Error('UNIQUE_SOURCE_ORDER_BOUNDARY_REQUIRED');
+const addition='\n```html\n'+envelope+'\n```\n',candidate=baseline.slice(0,at)+addition+baseline.slice(at),hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+if(candidate.replace(addition,'')!==baseline)throw Error('UNRELATED_OWNER_CHANGE');await mkdir(out,{recursive:true});await writeFile(out+'/timeline-spec.json',JSON.stringify(spec,null,2));await writeFile(out+'/candidate-opening.txt',candidate);dom.window.close();
+const proof={rank:41,sourceIndex:5,observedAt:new Date().toISOString(),elapsedMs:performance.now()-tick,baselineSha256:hash(baseline),candidateSha256:hash(candidate),allOtherOwnerBytesPreserved:true,sourceOrderPreserved:true,entries:4,publicSourceProgramExecuted:false,realParentAccess:false,ownerUiSaved:false,TESTDeployed:false,fullFidelityAccepted:false};await writeFile(out+'/candidate-proof.json',JSON.stringify(proof,null,2));await appendFile(root+'/timing-runs.jsonl',JSON.stringify({...proof,kind:'offline-public-timeline-candidate',agentNetMs:null})+'\n');console.log(JSON.stringify(proof));

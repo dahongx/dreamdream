@@ -1,0 +1,87 @@
+# 寄情 / Dearm —— 自托管 Supabase 生产编排（裸 IP 起步）。
+#
+# 形态: 单机一套 compose。Supabase 栈（db/kong/auth/rest/storage/imgproxy）经
+# `include` 引入，与本文件的 migrate + app 一同编排。业务库 = compose 内的
+# supabase-db 容器（内网直连，不对外暴露 5432）。
+#
+# 起停:
+#   bash deploy/supabase/gen-keys.sh >> .env   # 首次生成密钥
+#   docker compose build                       # 4c4g 上 Next build 约 5-10min
+#   docker compose up -d
+#   docker compose ps                          # 等全部 healthy
+# 可选 Studio 后台:
+#   docker compose -f docker-compose.yml -f deploy/supabase/docker-compose.studio.yml up -d
+#
+# 反代 / TLS 不在本文件 —— 裸 IP 阶段直接 <IP>:3000 访问 app、<IP>:8000 访问网关。
+# 域名到位后在宿主机加 caddy/nginx（见 docs/handover/supabase-cloud-migration.md）。
+
+include:
+  - deploy/supabase/docker-compose.supabase.yml
+
+services:
+  # One-shot: 应用 drizzle/*.sql。
+  #
+  # 启动顺序陷阱: drizzle/0011 有 `ALTER TABLE users ... REFERENCES auth.users`，
+  # 而 auth.users 由 gotrue(auth) 容器首次启动时建表。故 migrate 必须等 auth
+  # service_healthy —— 它健康即代表 db 已 healthy 且 auth schema 已建好。
+  # 直接 depends_on db 会偶发「relation auth.users does not exist」。
+  migrate:
+    build:
+      context: .
+      target: migrate
+    env_file: .env
+    restart: "no"
+    depends_on:
+      auth:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      target: runner
+      # NEXT_PUBLIC_* 在 next build 时内联进前端包，故必须在 build 阶段注入
+      # （仅运行时给 env 浏览器拿不到）。改 IP/域名后须重新 build。
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEARM_LOG_DIR: /app/logs
+      TZ: ${TZ:-Asia/Shanghai}
+      # 给 V8 明确堆上限，让 Node 触及 cgroup mem_limit 前先自己 GC / OOM，
+      # 拿到可读栈而不是被 cgroup 冷杀。留 ~500M 给 native / worker 线程。
+      NODE_OPTIONS: ${NODE_OPTIONS:---max-old-space-size=2560}
+    # 8G 机器历史事故（2026-07-04 / 07-05）根因是 3 并发 300K+ token 请求把
+    # 整机内存打爆，thrashing 到 sshd 都进不去。给 app 3G 硬上限 + 3.5G swap：
+    # 失控时 cgroup OOM 只杀本容器，restart:unless-stopped 会自动拉回。
+    mem_limit: 3g
+    memswap_limit: 3584m
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - ./logs:/app/logs
+      - ./secrets/payproo_private.pem:/run/secrets/payproo_private.pem:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kong:
+        condition: service_healthy
+
+  # -------- Supabase 栈内存上限 override --------
+  # 与 deploy/supabase/docker-compose.supabase.yml 里的同名服务 deep-merge，
+  # 这里只加 mem_limit 不改其他字段，保持子文件干净便于同步官方 upstream。
+  db:
+    mem_limit: 1500m
+    # 不设 memswap_limit → 默认 = 2×mem_limit，允许 postgres 页缓存偶尔换出，
+    # 避免 shared_buffers 被硬压导致 checkpoint IO 尖峰。
+  kong:
+    mem_limit: 512m
+  storage:
+    mem_limit: 512m
+  imgproxy:
+    mem_limit: 512m
+  auth:
+    mem_limit: 256m
+  rest:
+    mem_limit: 256m

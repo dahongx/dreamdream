@@ -1,0 +1,29 @@
+/*
+  Chat page style template
+  Copy the parts you like into the "美化代码" field.
+*/
+
+#nj_chat_header {
+  padding: var(--space-md) var(--space-lg);
+}
+
+.nj_ai_message_bubble {
+  border-radius: 18px;
+  border: 1px solid var(--border-subtle);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--surface-glass) 88%, transparent),
+    color-mix(in srgb, var(--bg-elevated) 94%, transparent)
+  );
+  box-shadow: 0 10px 30px color-mix(in srgb, black 25%, transparent);
+}
+
+.nj_user_message_bubble {
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--accent-primary) 14%, transparent);
+}
+
+#nj_chat_input_container {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-sm);
+}

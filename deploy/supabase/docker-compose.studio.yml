@@ -1,0 +1,59 @@
+# 可选 Studio 后台 override —— 寄情 self-host。
+#
+# 基础栈不含 Studio（省 ~300MB 内存 + 不暴露后台公网面）。需要可视化看
+# 数据库 / 用户 / 表时临时叠加:
+#
+#   docker compose -f docker-compose.yml \
+#     -f deploy/supabase/docker-compose.studio.yml up -d meta studio
+#
+# 看完关掉（不影响主栈）:
+#   docker compose -f docker-compose.yml \
+#     -f deploy/supabase/docker-compose.studio.yml stop meta studio
+#
+# 安全: studio 端口只绑 127.0.0.1 —— 远程访问请走 SSH 隧道:
+#   ssh -L 3001:127.0.0.1:3001 <user>@<VPS_IP>
+# 然后本地浏览器开 http://127.0.0.1:3001。切勿把 studio 直接暴露公网。
+#
+# Studio 经内部 PG_META 直连库（不经 kong），故基础 kong.yml 无需 dashboard/meta 路由。
+
+services:
+  meta:
+    container_name: supabase-meta
+    image: supabase/postgres-meta:v0.96.6
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: ${POSTGRES_HOST}
+      PG_META_DB_PORT: ${POSTGRES_PORT}
+      PG_META_DB_NAME: ${POSTGRES_DB}
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
+  studio:
+    container_name: supabase-studio
+    image: supabase/studio:2026.06.03-sha-0bca601
+    restart: unless-stopped
+    depends_on:
+      meta:
+        condition: service_started
+    # 只绑本机回环，不暴露公网。
+    ports:
+      - "127.0.0.1:3001:3000/tcp"
+    environment:
+      HOSTNAME: "0.0.0.0"
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DEFAULT_ORGANIZATION_NAME: Dearm
+      DEFAULT_PROJECT_NAME: Dearm
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      LOGFLARE_PRIVATE_ACCESS_TOKEN: ""
+      LOGFLARE_URL: ""
+      NEXT_PUBLIC_ENABLE_LOGS: "false"
+      ENABLED_FEATURES_LOGS_ALL: "false"

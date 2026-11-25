@@ -1,0 +1,74 @@
+# Dev override — adds a throwaway local postgres + bind-mounts src/ for hot
+# reload, and sets the dev fallback env so unsigned visitors get the seeded
+# "dev" user instead of being bounced to /signin (handy when iterating on
+# routes that need auth).
+#
+# The base compose has NO postgres service (production DB lives on Neon), so
+# the local postgres below is defined here and only exists for dev. Point the
+# dev `.env` DATABASE_URL at it: postgres://nimir:nimir@postgres:5432/nimir
+#
+# Run:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#   (or: bun run docker:dev)
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nimir
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nimir}
+      POSTGRES_DB: nimir
+    ports:
+      - "5432:5432"
+    volumes:
+      - nimir_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nimir -d nimir"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Deep-merged onto the base migrate: in dev it must wait for the local
+  # postgres to be healthy before applying migrations.
+  migrate:
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      # Override the base compose's `target: runner` (which belongs to the
+      # multi-stage production Dockerfile). Dockerfile.dev is single-stage,
+      # named `dev`; without this, compose deep-merges runner in and the
+      # build fails with "target stage runner could not be found".
+      target: dev
+    command: ["bun", "run", "dev", "--", "--hostname", "0.0.0.0"]
+    environment:
+      NIMIR_AUTH_DEV_FALLBACK: "1"
+    # Base already declares depends_on migrate (completed); compose merges
+    # this in so dev also waits for the local postgres to be healthy.
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+      - ./drizzle:/app/drizzle
+      - ./scripts:/app/scripts
+      - ./next.config.ts:/app/next.config.ts
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./biome.json:/app/biome.json
+      - ./postcss.config.mjs:/app/postcss.config.mjs
+      - ./package.json:/app/package.json
+      - ./bun.lock:/app/bun.lock
+      # Keep container-installed node_modules + .next inside the
+      # container — anonymous volume shadows the host directory so the
+      # host's bun-on-darwin node_modules can't pollute the alpine runtime.
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  nimir_pgdata:

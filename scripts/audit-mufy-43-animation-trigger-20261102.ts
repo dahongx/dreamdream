@@ -1,0 +1,35 @@
+/** Offline diagnosis of public animation programs, not actual visibility acceptance. */
+import {readFile, writeFile, appendFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+const root = 'logs/mufy-profiles/full-20261013/next-batch-30-20261028';
+const tick = performance.now(), observedAt = new Date().toISOString();
+const inventoryPath = 'final-acceptance/43/source-public-component-inventory.json';
+const bytes = await readFile(`${root}/${inventoryPath}`);
+const inventory = JSON.parse(bytes.toString());
+const audit = JSON.parse(await readFile(`${root}/candidate-baseline-audit-20261031.json`, 'utf8'));
+const row = audit.rows.find((r: {rank: number}) => r.rank === 43);
+const candidate = await readFile(`${root}/${row.finalCandidate}`, 'utf8');
+const sha = (text: string | Buffer) => createHash('sha256').update(text).digest('hex');
+if (sha(candidate) !== row.finalSha256) throw Error('CANDIDATE_HASH_CHANGED');
+const save = JSON.parse(await readFile(`${root}/final-acceptance/43/reviewed-owner-runtime-save-20261101.json`, 'utf8'));
+if (!save.saved || save.persistedSha256 !== row.finalSha256) throw Error('PERSISTED_BEAUTY_PROOF_MISSING');
+const frames = inventory.roots.flatMap((r: {frames: {html: string}[]}) => r.frames);
+const programs = [1, 2].map(sourceIndex => {
+  const scripts = Array.from((frames[sourceIndex].html as string).matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi), m => m[1]);
+  if (scripts.length !== 1) throw Error('UNEXPECTED_PUBLIC_SCRIPT_COUNT');
+  const script = scripts[0];
+  return {sourceIndex, scriptSha256: sha(script), unchangedScriptPresentInSavedCandidate: candidate.includes(script), visibilityThreshold: /threshold:\s*0\.5/.test(script) ? 0.5 : null, removesPlayingWhenOutsideViewport: /else\s*\{[\s\S]*?classList\.remove\('playing'\)/.test(script), restartsWhenIntersecting: /isIntersecting/.test(script) && /classList\.add\('playing'\)/.test(script)};
+});
+if (!programs.every(p => p.unchangedScriptPresentInSavedCandidate && p.visibilityThreshold === 0.5 && p.removesPlayingWhenOutsideViewport && p.restartsWhenIntersecting)) throw Error('PUBLIC_TRIGGER_CONTRACT_CHANGED');
+const report = {observedAt, rank: 43, sourceInventoryEvidence: {path: inventoryPath, sha256: sha(bytes)}, savedCandidate: {path: row.finalCandidate, sha256: row.finalSha256}, programs, finding: 'Both original programs intentionally remove playing outside the visible intersection and activate at threshold0.5. Unchanged programs exist in the hash-bound saved beauty candidate. Previous different playing classes are insufficient evidence of a product regression without matching visibility.', nextRequiredBrowserCheck: 'Normal scroll each target component into view, record outer and inner rects, playing class and two animation observations; compare source under equivalent visibility. Do not force playing permanently or edit the original animation before this check.', newBrowserObservation: false, codeChanged: false, fullFidelityAccepted: false, agentNetMs: null};
+await writeFile(`${root}/final-acceptance/43/animation-trigger-contract-20261102.json`, JSON.stringify(report, null, 2));
+const connection = {observedAt, chromePresent: true, browserId: '4', testPageTabId: '1586145019', testPageUrl: 'http://115.29.213.73:8091/chat/6eddaf1c-5530-413e-9dc6-5b32468bf614', pageObservationStatus: 'Debugger unattached for both DOM snapshot and screenshot', browserInventoryAndTabCloseWorking: true, actualPageAcceptanceCompleted: false, productOutageProven: false, duplicateTabsClosed: ['1586144977','1586144979','1586144978','1586144966'], retainedOriginalDuplicates: ['1586144980','1586144969'], sourceTabsPreserved: true};
+await writeFile(`${root}/browser-connection-followup-20261102.json`, JSON.stringify(connection, null, 2));
+const nextPath = `${root}/continuation-next-20261031.json`;
+const next = JSON.parse(await readFile(nextPath, 'utf8'));
+next.observedAt = observedAt;
+next.browserConnection = connection;
+next.animation43Diagnosis = {evidence: 'final-acceptance/43/animation-trigger-contract-20261102.json', actualVisibleAnimationStillPending: true};
+await writeFile(nextPath, JSON.stringify(next, null, 2));
+await appendFile(`${root}/timing-runs.jsonl`, JSON.stringify({observedAt, kind:'public-animation-contract-audit-process-wall', elapsedMs:performance.now()-tick, agentNetMs:null, browserPagesAccepted:0})+'\n');
+console.log(JSON.stringify({unchangedPrograms:programs.length, actualVisibleAnimationStillPending:true}));

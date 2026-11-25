@@ -1,0 +1,10 @@
+import {readFile,writeFile} from 'node:fs/promises';
+const root='logs/mufy-profiles/full-20261013/pilot-5';
+const summary=JSON.parse(await readFile(root+'/test-write-summary.json','utf8'));
+const ids=summary.rows.map((r:{databaseWrite:{characterId:string}})=>r.databaseWrite.characterId);
+if(!ids.every((id:string)=>/^[a-f0-9-]{36}$/.test(id)))throw Error('Exact TEST ids required');
+const query="BEGIN READ ONLY; SELECT coalesce(json_agg(x),'[]') FROM (SELECT DISTINCT ON (c.id) c.name,c.opening,m.content,r.pattern FROM characters c JOIN users u ON c.owner_id=u.id JOIN character_pack_subscriptions sub ON sub.character_id=c.id JOIN regex_rules r ON r.pack_id=sub.pack_id AND r.name='Mufy 来源开场渲染合同' LEFT JOIN chat_sessions s ON s.character_id=c.id AND s.user_id=u.id LEFT JOIN messages m ON m.session_id=s.id AND m.role='assistant' WHERE u.email='test@test.com' AND c.id IN ("+ids.map((id:string)=>"'"+id+"'").join(',')+") ORDER BY c.id,m.created_at ASC) x; COMMIT;";
+const p=Bun.spawn(['ssh','-o','BatchMode=yes','-o','ConnectTimeout=10','root@115.29.213.73',"cd /root/projects/yearn-chat && docker compose exec -T db psql -X -q -U postgres -d postgres -At -v ON_ERROR_STOP=1 -c "+JSON.stringify(query)],{stdout:'pipe',stderr:'pipe'});
+const out=await new Response(p.stdout).text(),err=await new Response(p.stderr).text();if(await p.exited)throw Error(err);
+const rows=JSON.parse(out.trim()).map((r:{name:string;opening:string;content:string;pattern:string})=>({name:r.name,cardMatches:new RegExp(r.pattern).test(r.opening),seedMatches:r.content?new RegExp(r.pattern).test(r.content):null,openingChars:r.opening.length,seedChars:r.content?.length}));
+await writeFile(root+'/opening-match-audit-20261015.json',JSON.stringify({checkedAt:new Date().toISOString(),scope:'TEST',rows},null,2));console.log(JSON.stringify(rows));

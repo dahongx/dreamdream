@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.mufy-source-transfer.json",
+  "include": ["next-env.d.ts", "src/types/jsdom-capture.d.ts"],
+  "files": [
+    "src/components/chat/MufyHaloToolkit.tsx",
+    "src/lib/opening/halo-toolkit.ts",
+    "src/components/chat/__tests__/mufy-halo-toolkit.test.tsx",
+    "src/components/chat/__tests__/mufy-halo-commands.test.ts",
+    "src/components/chat/__tests__/mufy-halo-drawing.test.ts",
+    "scripts/stage-mufy-linxu-toolkit-opening.ts",
+    "scripts/stage-mufy-linxu-toolkit.ts"
+  ]
+}
